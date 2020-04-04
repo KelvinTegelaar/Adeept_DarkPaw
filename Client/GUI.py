@@ -16,15 +16,19 @@ import tkinter as tk
 
 try:#1
 	import cv2
-	import base64
 	import numpy as np
 except:
 	print("Couldn't import OpenCV, you need to install it first. pip3 install opencv-contrib-python")
 
 try:#1
+	import base64
+except:
+	print("Couldn't import base64, you need to install it first. pip3 install pybase64")
+
+try:#1
 	import zmq
 except:
-	print("Couldn't import OpenCV, you need to install it first. pip3 install pyzmq")
+	print("Couldn't import zmq, you need to install it first. pip3 install pyzmq")
 
 ip_stu=1		#Shows connection status
 c_f_stu = 0
