@@ -19,6 +19,9 @@ import switch
 
 functionMode = 0
 
+def breath_led():
+    LED.breath(255)
+
 def info_send_client():
     SERVER_IP = addr[0]
     SERVER_PORT = 2256   #Define port serial 
@@ -347,6 +350,10 @@ if __name__ == '__main__':
     try:
         LED  = LED.LED()
         LED.colorWipe(255,16,0)
+        led_threading=threading.Thread(target=breath_led)         #Define a thread for LED breathing
+        led_threading.setDaemon(True)                             #'True' means it is a front thread,it would close when the mainloop() closes
+        led_threading.start()                                     #Thread starts
+        LED.breath_color_set('blue')
     except:
         print('Use "sudo pip3 install rpi_ws281x" to install WS_281x package\n使用"sudo pip3 install rpi_ws281x"命令来安装rpi_ws281x')
         pass

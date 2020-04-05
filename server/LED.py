@@ -18,6 +18,11 @@ LED_BRIGHTNESS = 255     # Set to 0 for darkest and 255 for brightest
 LED_INVERT     = False   # True to invert the signal (when using NPN transistor level shift)
 LED_CHANNEL    = 0       # set to '1' for GPIOs 13, 19, 41, 45 or 53
 
+BREATH = 1
+color = 'yellow'
+FRE_TIME = 50
+DELY = 0.1
+
 class LED:
     def __init__(self):
         self.LED_COUNT      = 16      # Number of LED pixels.
@@ -43,6 +48,79 @@ class LED:
         for i in range(self.strip.numPixels()):
             self.strip.setPixelColor(i, color)
             self.strip.show()
+
+    def breath_status_set(self, status):
+        global BREATH
+        BREATH = status
+
+
+    def breath_color_set(self, invar):
+        global color
+        color = invar
+
+
+    def breath_frequency_set(self, frequency_input):
+        global FRE_TIME
+        FRE_TIME = frequency_input
+
+
+    def breath(self, brightness):
+        while 1:
+            if BREATH:
+                if color == 'red':
+                    for a in range(0, brightness, FRE_TIME):
+                        if not BREATH:
+                            break
+                        else:
+                            self.colorWipe(a,0,0)
+                            time.sleep(DELY)
+                    for b in range(0, brightness, FRE_TIME):
+                        if not BREATH:
+                            break
+                        else:
+                            self.colorWipe(((brightness-1)-b),0,0)
+                            time.sleep(DELY)
+                elif color == 'green':
+                    for a in range(0, brightness, FRE_TIME):
+                        if not BREATH:
+                            break
+                        else:
+                            self.colorWipe(0,a,0)
+                            time.sleep(DELY)
+                    for b in range(0, brightness, FRE_TIME):
+                        if not BREATH:
+                            break
+                        else:
+                            self.colorWipe(0,((brightness-1)-b),0)
+                            time.sleep(DELY)
+                elif color == 'yellow':
+                    for a in range(0, brightness, FRE_TIME):
+                        if not BREATH:
+                            break
+                        else:
+                            self.colorWipe(a,a,0)
+                            time.sleep(DELY)
+                    for b in range(0, brightness, FRE_TIME):
+                        if not BREATH:
+                            break
+                        else:
+                            self.colorWipe(((brightness-1)-b),((brightness-1)-b),0)
+                            time.sleep(DELY)
+                elif color == 'blue':
+                    for a in range(0, brightness, FRE_TIME):
+                        if not BREATH:
+                            break
+                        else:
+                            self.colorWipe(0,a,a)
+                            time.sleep(DELY)
+                    for b in range(0, brightness, FRE_TIME):
+                        if not BREATH:
+                            break
+                        else:
+                            self.colorWipe(0,((brightness-1)-b),((brightness-1)-b))
+                            time.sleep(DELY)
+            else:
+                time.sleep(0.2)
 
 if __name__ == '__main__':
     led = LED()
