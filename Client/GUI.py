@@ -45,6 +45,9 @@ stat = 0
 Switch_3 = 0
 Switch_2 = 0
 Switch_1 = 0
+LED_Switch_3 = 0
+LED_Switch_2 = 0
+LED_Switch_1 = 0
 SmoothMode = 0
 
 ########>>>>>VIDEO<<<<<########
@@ -261,6 +264,18 @@ def call_Switch_3(event):
 		tcpClicSock.send(('Switch_3_off').encode())
 
 
+def call_LED_Switch_1(event):
+	tcpClicSock.send(('police').encode())
+
+
+def call_LED_Switch_2(event):
+	tcpClicSock.send(('breath').encode())
+
+
+def call_LED_Switch_3(event):
+	tcpClicSock.send(('rainbow').encode())
+
+
 def all_btn_red():
 	Btn_Steady.config(bg='#FF6D00', fg='#000000')
 	Btn_FindColor.config(bg='#FF6D00', fg='#000000')
@@ -332,6 +347,30 @@ def connection_thread():
 		elif 'Switch_1_off' in car_info:
 			Switch_1 = 0
 			Btn_Switch_1.config(bg=color_btn)
+
+		elif 'rainbow_on' in car_info:
+			LED_Switch_3 = 1
+			Btn_LED_Switch_3.config(bg='#4CAF50')
+
+		elif 'breath_on' in car_info:
+			LED_Switch_2 = 1
+			Btn_LED_Switch_2.config(bg='#4CAF50')
+
+		elif 'police_on' in car_info:
+			LED_Switch_1 = 1
+			Btn_LED_Switch_1.config(bg='#4CAF50')
+
+		elif 'rainbow_off' in car_info:
+			LED_Switch_3 = 0
+			Btn_LED_Switch_3.config(bg=color_btn)
+
+		elif 'breath_off' in car_info:
+			LED_Switch_2 = 0
+			Btn_LED_Switch_2.config(bg=color_btn)
+
+		elif 'police_off' in car_info:
+			LED_Switch_1 = 0
+			Btn_LED_Switch_1.config(bg=color_btn)
 
 		elif 'FunEnd' in car_info:
 			funcMode = 0
@@ -444,17 +483,17 @@ def connect_click():	   #Call this function to connect with the server
 
 def set_R(event):
 	time.sleep(0.03)
-	tcpClicSock.send(('wsR %s'%var_R.get()).encode())
+	tcpClicSock.send(('ws28 %s %s %s' % (var_R.get(), var_G.get(), var_B.get())).encode())
 
 
 def set_G(event):
 	time.sleep(0.03)
-	tcpClicSock.send(('wsG %s'%var_G.get()).encode())
+	tcpClicSock.send(('ws28 %s %s %s' % (var_R.get(), var_G.get(), var_B.get())).encode())
 
 
 def set_B(event):
 	time.sleep(0.03)
-	tcpClicSock.send(('wsB %s'%var_B.get()).encode())
+	tcpClicSock.send(('ws28 %s %s %s' % (var_R.get(), var_G.get(), var_B.get())).encode())
 
 
 def EC_send(event):#z
@@ -522,7 +561,7 @@ def scale_FL(x,y,w):#1
 
 
 def loop():					  #GUI
-	global tcpClicSock,root,E1,connect,l_ip_4,l_ip_5,color_btn,color_text,Btn14,CPU_TEP_lab,CPU_USE_lab,RAM_lab,canvas_ultra,color_text,var_R,var_B,var_G,Btn_Steady,Btn_FindColor,Btn_WatchDog,Btn_Fun4,Btn_Fun5,Btn_Fun6,Btn_Switch_1,Btn_Switch_2,Btn_Switch_3,Btn_Smooth,var_lip1,var_lip2,var_err,color_bg,var_ec   #The value of tcpClicSock changes in the function loop(),would also changes in global so the other functions could use it.
+	global tcpClicSock,root,E1,connect,l_ip_4,l_ip_5,color_btn,color_text,Btn14,CPU_TEP_lab,CPU_USE_lab,RAM_lab,canvas_ultra,color_text,var_R,var_B,var_G,Btn_Steady,Btn_FindColor,Btn_WatchDog,Btn_Fun4,Btn_Fun5,Btn_Fun6,Btn_Switch_1,Btn_Switch_2,Btn_Switch_3,Btn_LED_Switch_1,Btn_LED_Switch_2,Btn_LED_Switch_3,Btn_Smooth,var_lip1,var_lip2,var_err,color_bg,var_ec   #The value of tcpClicSock changes in the function loop(),would also changes in global so the other functions could use it.
 	while True:
 		color_bg='#000000'		#Set background color
 		color_text='#E1F5FE'	  #Set text color
@@ -591,6 +630,18 @@ def loop():					  #GUI
 		Btn_Switch_1.bind('<ButtonPress-1>', call_Switch_1)
 		Btn_Switch_2.bind('<ButtonPress-1>', call_Switch_2)
 		Btn_Switch_3.bind('<ButtonPress-1>', call_Switch_3)
+
+		Btn_LED_Switch_1 = tk.Button(root, width=8, text='Police',fg=color_text,bg=color_btn,relief='ridge')
+		Btn_LED_Switch_2 = tk.Button(root, width=8, text='Breath',fg=color_text,bg=color_btn,relief='ridge')
+		Btn_LED_Switch_3 = tk.Button(root, width=8, text='Rainbow',fg=color_text,bg=color_btn,relief='ridge')
+
+		Btn_LED_Switch_1.place(x=30,y=300)
+		Btn_LED_Switch_2.place(x=100,y=300)
+		Btn_LED_Switch_3.place(x=170,y=300)
+
+		Btn_LED_Switch_1.bind('<ButtonPress-1>', call_LED_Switch_1)
+		Btn_LED_Switch_2.bind('<ButtonPress-1>', call_LED_Switch_2)
+		Btn_LED_Switch_3.bind('<ButtonPress-1>', call_LED_Switch_3)
 
 		Btn0 = tk.Button(root, width=8, text='Forward',fg=color_text,bg=color_btn,relief='ridge')
 		Btn1 = tk.Button(root, width=8, text='Backward',fg=color_text,bg=color_btn,relief='ridge')
