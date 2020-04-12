@@ -18,15 +18,20 @@ import FPV
 import info
 import LED
 import switch
+import ultra
 
 functionMode = 0
 
 
-def breath_led():
-	led.breath(255)
+def ultra_sonic():
+	global ultra_distance
+	while 1:
+		ultra_distance = ultra.checkdist()
+		time.sleep(0.5)
 
 
 def info_send_client():
+	global ultra_distance
 	SERVER_IP = addr[0]
 	SERVER_PORT = 2256  # Define port serial
 	SERVER_ADDR = (SERVER_IP, SERVER_PORT)
@@ -35,7 +40,7 @@ def info_send_client():
 	print(SERVER_ADDR)
 	while 1:
 		try:
-			Info_Socket.send((info.get_cpu_tempfunc() + ' ' + info.get_cpu_use() + ' ' + info.get_ram_info() + ' ' + str(SpiderG.get_direction())).encode())
+			Info_Socket.send((info.get_cpu_tempfunc() + ' ' + info.get_cpu_use() + ' ' + info.get_ram_info() + ' ' + str(SpiderG.get_direction()) + ' ' + str(ultra_distance)).encode())
 			time.sleep(1)
 		except:
 			time.sleep(10)
@@ -53,15 +58,19 @@ def ap_thread():
 
 
 def run():
-	global speed_set, functionMode, direction_command, turn_command
+	global ultra_distance, functionMode, direction_command, turn_command
 
-	speed_set = 100
+	ultra_distance = 0
 	direction_command = 'no'
 	turn_command = 'no'
 
 	info_threading = threading.Thread(target=info_send_client)	# Define a thread for FPV and OpenCV
 	info_threading.setDaemon(True)								# 'True' means it is a front thread,it would close when the mainloop() closes
 	info_threading.start()										# Thread starts
+
+	ultra_threading = threading.Thread(target=ultra_sonic)
+	ultra_threading.setDaemon(True)								# 'True' means it is a front thread,it would close when the mainloop() closes
+	ultra_threading.start()										# Thread starts
 
 	while True:
 		data = ''
@@ -340,6 +349,7 @@ def run():
 			pass
 
 		print(data)
+		print(ultra_distance)
 
 
 def wifi_check():
