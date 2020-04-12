@@ -13,6 +13,7 @@ import sys
 import time
 import threading as thread
 import tkinter as tk
+from tkinter import messagebox
 
 try:#1
 	import cv2
@@ -40,7 +41,6 @@ c_rs_stu= 0
 funcMode= 0
 tcpClicSock = ''
 root = ''
-stat = 0
 
 Switch_3 = 0
 Switch_2 = 0
@@ -87,6 +87,7 @@ def opencv_r():
 				cv2.putText(source,('CPU Temperature: %s'%CPU_TEP),(370,350), font, 0.5,(128,255,128),1,cv2.LINE_AA)
 				cv2.putText(source,('CPU Usage: %s'%CPU_USE),(370,380), font, 0.5,(128,255,128),1,cv2.LINE_AA)
 				cv2.putText(source,('RAM Usage: %s'%RAM_USE),(370,410), font, 0.5,(128,255,128),1,cv2.LINE_AA)
+				cv2.putText(source,('Distance: %s'%DISTANCE),(370,440), font, 0.5,(128,255,128),1,cv2.LINE_AA)
 
 				#cv2.line(source,(320,240),(260,300),(255,255,255),1)
 				#cv2.line(source,(210,300),(260,300),(255,255,255),1)
@@ -208,7 +209,7 @@ def call_headleft(event):
 
 
 def call_headright(event):
-	tcpClicSock.send(('hight').encode())
+	tcpClicSock.send(('high').encode())
 
 
 def call_headhome(event):
@@ -380,7 +381,7 @@ def connection_thread():
 
 
 def Info_receive():
-	global CPU_TEP,CPU_USE,RAM_USE
+	global CPU_TEP,CPU_USE,RAM_USE,DIS_lab,DIRECTION,DISTANCE
 	HOST = ''
 	INFO_PORT = 2256							#Define port serial 
 	ADDR = (HOST, INFO_PORT)
@@ -394,12 +395,20 @@ def Info_receive():
 		try:
 			info_data = ''
 			info_data = str(InfoSock.recv(BUFSIZ).decode())
-			info_get = info_data.split()
-			CPU_TEP,CPU_USE,RAM_USE= info_get
-			#print('cpu_tem:%s\ncpu_use:%s\nram_use:%s'%(CPU_TEP,CPU_USE,RAM_USE))
+			try:
+				info_get = info_data.split()
+				CPU_TEP = info_get[0]
+				CPU_USE = info_get[1]
+				RAM_USE = info_get[2]
+				DIRECTION = info_get[3]
+				DISTANCE = info_get[4]
+			except:
+				pass
+			print('cpu_tem:%s\ncpu_use:%s\nram_use:%s'%(CPU_TEP,CPU_USE,RAM_USE))
 			CPU_TEP_lab.config(text='CPU Temp: %s℃'%CPU_TEP)
 			CPU_USE_lab.config(text='CPU Usage: %s'%CPU_USE)
 			RAM_lab.config(text='RAM Usage: %s'%RAM_USE)
+			DIS_lab.config(text='Distance: %s'%DISTANCE)
 		except:
 			pass
 
@@ -559,246 +568,241 @@ def scale_FL(x,y,w):#1
 	Btn_WB.place(x=x+w+21,y=y+60)
 	Btn_WB.bind('<ButtonPress-1>', call_WB)
 
+def on_closing():
+	if messagebox.askokcancel("Quit", "Do you want to quit?"):
+		root.destroy()
 
 def loop():					  #GUI
-	global tcpClicSock,root,E1,connect,l_ip_4,l_ip_5,color_btn,color_text,Btn14,CPU_TEP_lab,CPU_USE_lab,RAM_lab,canvas_ultra,color_text,var_R,var_B,var_G,Btn_Steady,Btn_FindColor,Btn_WatchDog,Btn_Fun4,Btn_Fun5,Btn_Fun6,Btn_Switch_1,Btn_Switch_2,Btn_Switch_3,Btn_LED_Switch_1,Btn_LED_Switch_2,Btn_LED_Switch_3,Btn_Smooth,var_lip1,var_lip2,var_err,color_bg,var_ec   #The value of tcpClicSock changes in the function loop(),would also changes in global so the other functions could use it.
-	while True:
-		color_bg='#000000'		#Set background color
-		color_text='#E1F5FE'	  #Set text color
-		color_btn='#0277BD'	   #Set button color
-		color_line='#01579B'	  #Set line color
-		color_can='#212121'	   #Set canvas color
-		color_oval='#2196F3'	  #Set oval color
-		target_color='#FF6D00'
+	global tcpClicSock,root,E1,connect,l_ip_4,l_ip_5,color_btn,color_text,Btn14,CPU_TEP_lab,CPU_USE_lab,RAM_lab,DIS_lab,canvas_ultra,color_text,var_R,var_B,var_G,Btn_Steady,Btn_FindColor,Btn_WatchDog,Btn_Fun4,Btn_Fun5,Btn_Fun6,Btn_Switch_1,Btn_Switch_2,Btn_Switch_3,Btn_LED_Switch_1,Btn_LED_Switch_2,Btn_LED_Switch_3,Btn_Smooth,var_lip1,var_lip2,var_err,color_bg,var_ec   #The value of tcpClicSock changes in the function loop(),would also changes in global so the other functions could use it.
 
-		root = tk.Tk()			#Define a window named root
-		root.title('Adeept DarkPaw')	  #Main window title
-		root.geometry('565x680')  #Main window size, middle of the English letter x.
-		root.config(bg=color_bg)  #Set the background color of root window
+	color_bg='#000000'		#Set background color
+	color_text='#E1F5FE'	  #Set text color
+	color_btn='#0277BD'	   #Set button color
+	color_line='#01579B'	  #Set line color
+	color_can='#212121'	   #Set canvas color
+	color_oval='#2196F3'	  #Set oval color
+	target_color='#FF6D00'
 
-		try:
-			logo =tk.PhotoImage(file = 'logo.png')		 #Define the picture of logo,but only supports '.png' and '.gif'
-			l_logo=tk.Label(root,image = logo,bg=color_bg) #Set a label to show the logo picture
-			l_logo.place(x=30,y=13)						#Place the Label in a right position
-		except:
-			pass
+	root = tk.Tk()			#Define a window named root
+	root.title('Adeept DarkPaw Controller')	  #Main window title
+	root.geometry('580x700')  #Main window size, middle of the English letter x.
+	root.config(bg=color_bg)  #Set the background color of root window
 
-		CPU_TEP_lab=tk.Label(root,width=18,text='CPU Temp:',fg=color_text,bg='#212121')
-		CPU_TEP_lab.place(x=400,y=15)						 #Define a Label and put it in position
+	try:
+		logo =tk.PhotoImage(file = 'logo.png')		 #Define the picture of logo,but only supports '.png' and '.gif'
+		l_logo=tk.Label(root,image = logo,bg=color_bg) #Set a label to show the logo picture
+		l_logo.place(x=30,y=13)						#Place the Label in a right position
+	except:
+		pass
 
-		CPU_USE_lab=tk.Label(root,width=18,text='CPU Usage:',fg=color_text,bg='#212121')
-		CPU_USE_lab.place(x=400,y=45)						 #Define a Label and put it in position
+	CPU_TEP_lab=tk.Label(root,width=18,text='CPU Temp:',fg=color_text,bg='#212121')
+	CPU_TEP_lab.place(x=400,y=15)						 #Define a Label and put it in position
 
-		RAM_lab=tk.Label(root,width=18,text='RAM Usage:',fg=color_text,bg='#212121')
-		RAM_lab.place(x=400,y=75)						 #Define a Label and put it in position
+	CPU_USE_lab=tk.Label(root,width=18,text='CPU Usage:',fg=color_text,bg='#212121')
+	CPU_USE_lab.place(x=400,y=45)						 #Define a Label and put it in position
 
-		l_ip=tk.Label(root,width=18,text='Status',fg=color_text,bg=color_btn)
-		l_ip.place(x=30,y=110)						   #Define a Label and put it in position
+	RAM_lab=tk.Label(root,width=18,text='RAM Usage:',fg=color_text,bg='#212121')
+	RAM_lab.place(x=400,y=75)						 #Define a Label and put it in position
 
-		l_ip_4=tk.Label(root,width=18,text='Disconnected',fg=color_text,bg='#F44336')
-		l_ip_4.place(x=400,y=110)						 #Define a Label and put it in position
+	DIS_lab=tk.Label(root,width=18,text='Distance:',fg=color_text,bg='#212121')
+	DIS_lab.place(x=400,y=105)						 #Define a Label and put it in position
 
-		l_ip_5=tk.Label(root,width=18,text='Use default IP',fg=color_text,bg=color_btn)
-		l_ip_5.place(x=400,y=145)						 #Define a Label and put it in position
+	l_ip=tk.Label(root,width=18,text='Status',fg=color_text,bg=color_btn)
+	l_ip.place(x=30,y=130)						   #Define a Label and put it in position
 
-		E1 = tk.Entry(root,show=None,width=16,bg="#37474F",fg='#eceff1')
-		E1.place(x=180,y=40)							 #Define a Entry and put it in position
+	label_openCV=tk.Label(root,width=28,text='OpenCV Status',fg=color_text,bg=color_btn)
+	label_openCV.place(x=180,y=130)						 #Define a Label and put it in position
 
-		l_ip_3=tk.Label(root,width=10,text='IP Address:',fg=color_text,bg='#000000')
-		l_ip_3.place(x=175,y=15)						 #Define a Label and put it in position
+	l_ip_4=tk.Label(root,width=18,text='Disconnected',fg=color_text,bg='#F44336')
+	l_ip_4.place(x=400,y=130)						 #Define a Label and put it in position
 
-		label_openCV=tk.Label(root,width=28,text='OpenCV Status',fg=color_text,bg=color_btn)
-		label_openCV.place(x=180,y=110)						 #Define a Label and put it in position
+	l_ip_5=tk.Label(root,width=18,text='Use default IP',fg=color_text,bg=color_btn)
+	l_ip_5.place(x=400,y=165)						 #Define a Label and put it in position
 
-		################################
-		#canvas_rec=canvas_ultra.create_rectangle(0,0,340,30,fill = '#FFFFFF',width=0)
-		#canvas_text=canvas_ultra.create_text((90,11),text='Ultrasonic Output: 0.75m',fill=color_text)
-		################################
-		#Btn_Smooth = tk.Button(root, width=8, text='Smooth',fg=color_text,bg=color_btn,relief='ridge')
-		#Btn_Smooth.place(x=240,y=230)
-		#Btn_Smooth.bind('<ButtonPress-1>', call_Smooth)
-		#root.bind('<KeyPress-f>', call_Smooth)
+	E1 = tk.Entry(root,show=None,width=16,bg="#37474F",fg='#eceff1')
+	E1.place(x=150,y=40)							 #Define a Entry and put it in position
 
-		Btn_Switch_1 = tk.Button(root, width=8, text='Port 1',fg=color_text,bg=color_btn,relief='ridge')
-		Btn_Switch_2 = tk.Button(root, width=8, text='Port 2',fg=color_text,bg=color_btn,relief='ridge')
-		Btn_Switch_3 = tk.Button(root, width=8, text='Port 3',fg=color_text,bg=color_btn,relief='ridge')
+	l_ip_3=tk.Label(root,width=10,text='IP Address:',fg=color_text,bg='#000000')
+	l_ip_3.place(x=150,y=15)						 #Define a Label and put it in position
 
-		Btn_Switch_1.place(x=30,y=265)
-		Btn_Switch_2.place(x=100,y=265)
-		Btn_Switch_3.place(x=170,y=265)
+	Btn_Switch_1 = tk.Button(root, width=8, text='Port 1',fg=color_text,bg=color_btn,relief='ridge')
+	Btn_Switch_2 = tk.Button(root, width=8, text='Port 2',fg=color_text,bg=color_btn,relief='ridge')
+	Btn_Switch_3 = tk.Button(root, width=8, text='Port 3',fg=color_text,bg=color_btn,relief='ridge')
 
-		Btn_Switch_1.bind('<ButtonPress-1>', call_Switch_1)
-		Btn_Switch_2.bind('<ButtonPress-1>', call_Switch_2)
-		Btn_Switch_3.bind('<ButtonPress-1>', call_Switch_3)
+	Btn_Switch_1.place(x=30,y=265)
+	Btn_Switch_2.place(x=100,y=265)
+	Btn_Switch_3.place(x=170,y=265)
 
-		Btn_LED_Switch_1 = tk.Button(root, width=8, text='Police',fg=color_text,bg=color_btn,relief='ridge')
-		Btn_LED_Switch_2 = tk.Button(root, width=8, text='Breath',fg=color_text,bg=color_btn,relief='ridge')
-		Btn_LED_Switch_3 = tk.Button(root, width=8, text='Rainbow',fg=color_text,bg=color_btn,relief='ridge')
+	Btn_Switch_1.bind('<ButtonPress-1>', call_Switch_1)
+	Btn_Switch_2.bind('<ButtonPress-1>', call_Switch_2)
+	Btn_Switch_3.bind('<ButtonPress-1>', call_Switch_3)
 
-		Btn_LED_Switch_1.place(x=30,y=300)
-		Btn_LED_Switch_2.place(x=100,y=300)
-		Btn_LED_Switch_3.place(x=170,y=300)
+	Btn_LED_Switch_1 = tk.Button(root, width=8, text='Police',fg=color_text,bg=color_btn,relief='ridge')
+	Btn_LED_Switch_2 = tk.Button(root, width=8, text='Breath',fg=color_text,bg=color_btn,relief='ridge')
+	Btn_LED_Switch_3 = tk.Button(root, width=8, text='Rainbow',fg=color_text,bg=color_btn,relief='ridge')
 
-		Btn_LED_Switch_1.bind('<ButtonPress-1>', call_LED_Switch_1)
-		Btn_LED_Switch_2.bind('<ButtonPress-1>', call_LED_Switch_2)
-		Btn_LED_Switch_3.bind('<ButtonPress-1>', call_LED_Switch_3)
+	Btn_LED_Switch_1.place(x=30,y=300)
+	Btn_LED_Switch_2.place(x=100,y=300)
+	Btn_LED_Switch_3.place(x=170,y=300)
 
-		Btn0 = tk.Button(root, width=8, text='Forward',fg=color_text,bg=color_btn,relief='ridge')
-		Btn1 = tk.Button(root, width=8, text='Backward',fg=color_text,bg=color_btn,relief='ridge')
-		Btn2 = tk.Button(root, width=8, text='Left',fg=color_text,bg=color_btn,relief='ridge')
-		Btn3 = tk.Button(root, width=8, text='Right',fg=color_text,bg=color_btn,relief='ridge')
+	Btn_LED_Switch_1.bind('<ButtonPress-1>', call_LED_Switch_1)
+	Btn_LED_Switch_2.bind('<ButtonPress-1>', call_LED_Switch_2)
+	Btn_LED_Switch_3.bind('<ButtonPress-1>', call_LED_Switch_3)
 
-		Btn_LeftSide = tk.Button(root, width=8, text='<--',fg=color_text,bg=color_btn,relief='ridge')
-		Btn_LeftSide.place(x=30,y=195)
-		Btn_LeftSide.bind('<ButtonPress-1>', call_LeftSide)
-		Btn_LeftSide.bind('<ButtonRelease-1>', call_Turn_stop)
+	Btn0 = tk.Button(root, width=8, text='Forward',fg=color_text,bg=color_btn,relief='ridge')
+	Btn1 = tk.Button(root, width=8, text='Backward',fg=color_text,bg=color_btn,relief='ridge')
+	Btn2 = tk.Button(root, width=8, text='Left',fg=color_text,bg=color_btn,relief='ridge')
+	Btn3 = tk.Button(root, width=8, text='Right',fg=color_text,bg=color_btn,relief='ridge')
 
-		Btn_RightSide = tk.Button(root, width=8, text='-->',fg=color_text,bg=color_btn,relief='ridge')
-		Btn_RightSide.place(x=170,y=195)
-		Btn_RightSide.bind('<ButtonPress-1>', call_RightSide)
-		Btn_RightSide.bind('<ButtonRelease-1>', call_Turn_stop)
+	Btn_LeftSide = tk.Button(root, width=8, text='<--',fg=color_text,bg=color_btn,relief='ridge')
+	Btn_LeftSide.place(x=30,y=195)
+	Btn_LeftSide.bind('<ButtonPress-1>', call_LeftSide)
+	Btn_LeftSide.bind('<ButtonRelease-1>', call_Turn_stop)
 
-		Btn0.place(x=100,y=195)
-		Btn1.place(x=100,y=230)
-		Btn2.place(x=30,y=230)
-		Btn3.place(x=170,y=230)
+	Btn_RightSide = tk.Button(root, width=8, text='-->',fg=color_text,bg=color_btn,relief='ridge')
+	Btn_RightSide.place(x=170,y=195)
+	Btn_RightSide.bind('<ButtonPress-1>', call_RightSide)
+	Btn_RightSide.bind('<ButtonRelease-1>', call_Turn_stop)
 
-		Btn0.bind('<ButtonPress-1>', call_forward)
-		Btn1.bind('<ButtonPress-1>', call_back)
-		Btn2.bind('<ButtonPress-1>', call_Left)
-		Btn3.bind('<ButtonPress-1>', call_Right)
+	Btn0.place(x=100,y=195)
+	Btn1.place(x=100,y=230)
+	Btn2.place(x=30,y=230)
+	Btn3.place(x=170,y=230)
 
-		Btn0.bind('<ButtonRelease-1>', call_FB_stop)
-		Btn1.bind('<ButtonRelease-1>', call_FB_stop)
-		Btn2.bind('<ButtonRelease-1>', call_Turn_stop)
-		Btn3.bind('<ButtonRelease-1>', call_Turn_stop)
+	Btn0.bind('<ButtonPress-1>', call_forward)
+	Btn1.bind('<ButtonPress-1>', call_back)
+	Btn2.bind('<ButtonPress-1>', call_Left)
+	Btn3.bind('<ButtonPress-1>', call_Right)
 
-		root.bind('<KeyPress-w>', call_forward) 
-		root.bind('<KeyPress-a>', call_Left)
-		root.bind('<KeyPress-d>', call_Right)
-		root.bind('<KeyPress-s>', call_back)
+	Btn0.bind('<ButtonRelease-1>', call_FB_stop)
+	Btn1.bind('<ButtonRelease-1>', call_FB_stop)
+	Btn2.bind('<ButtonRelease-1>', call_Turn_stop)
+	Btn3.bind('<ButtonRelease-1>', call_Turn_stop)
 
-		root.bind('<KeyPress-q>', call_LeftSide)
-		root.bind('<KeyPress-e>', call_RightSide)
-		root.bind('<KeyRelease-q>', call_Turn_stop)
-		root.bind('<KeyRelease-e>', call_Turn_stop)
+	root.bind('<KeyPress-w>', call_forward) 
+	root.bind('<KeyPress-a>', call_Left)
+	root.bind('<KeyPress-d>', call_Right)
+	root.bind('<KeyPress-s>', call_back)
 
-		root.bind('<KeyRelease-w>', call_FB_stop)
-		root.bind('<KeyRelease-a>', call_Turn_stop)
-		root.bind('<KeyRelease-d>', call_Turn_stop)
-		root.bind('<KeyRelease-s>', call_FB_stop)
+	root.bind('<KeyPress-q>', call_LeftSide)
+	root.bind('<KeyPress-e>', call_RightSide)
+	root.bind('<KeyRelease-q>', call_Turn_stop)
+	root.bind('<KeyRelease-e>', call_Turn_stop)
 
-		Btn_up = tk.Button(root, width=8, text='Up',fg=color_text,bg=color_btn,relief='ridge')
-		Btn_down = tk.Button(root, width=8, text='Down',fg=color_text,bg=color_btn,relief='ridge')
-		Btn_left = tk.Button(root, width=8, text='Low',fg=color_text,bg=color_btn,relief='ridge')
-		Btn_right = tk.Button(root, width=8, text='High',fg=color_text,bg=color_btn,relief='ridge')
-		Btn_home = tk.Button(root, width=8, text='Home',fg=color_text,bg=color_btn,relief='ridge')
-		Btn_up.place(x=400,y=195)
-		Btn_down.place(x=400,y=265)
-		Btn_left.place(x=330,y=230)
-		Btn_right.place(x=470,y=230)
-		Btn_home.place(x=400,y=230)
-		root.bind('<KeyPress-i>', call_headup) 
-		root.bind('<KeyPress-k>', call_headdown)
-		root.bind('<KeyPress-j>', call_headleft)
-		root.bind('<KeyPress-l>', call_headright)
-		root.bind('<KeyPress-h>', call_headhome)
-		Btn_up.bind('<ButtonPress-1>', call_headup)
-		Btn_down.bind('<ButtonPress-1>', call_headdown)
-		Btn_left.bind('<ButtonPress-1>', call_headleft)
-		Btn_right.bind('<ButtonPress-1>', call_headright)
-		Btn_home.bind('<ButtonPress-1>', call_headhome)
+	root.bind('<KeyRelease-w>', call_FB_stop)
+	root.bind('<KeyRelease-a>', call_Turn_stop)
+	root.bind('<KeyRelease-d>', call_Turn_stop)
+	root.bind('<KeyRelease-s>', call_FB_stop)
 
-		Btn14= tk.Button(root, width=8,height=2, text='Connect',fg=color_text,bg=color_btn,command=connect_click,relief='ridge')
-		Btn14.place(x=315,y=15)						  #Define a Button and put it in position
+	Btn_up = tk.Button(root, width=8, text='Up',fg=color_text,bg=color_btn,relief='ridge')
+	Btn_down = tk.Button(root, width=8, text='Down',fg=color_text,bg=color_btn,relief='ridge')
+	Btn_left = tk.Button(root, width=8, text='Low',fg=color_text,bg=color_btn,relief='ridge')
+	Btn_right = tk.Button(root, width=8, text='High',fg=color_text,bg=color_btn,relief='ridge')
+	Btn_home = tk.Button(root, width=8, text='Home',fg=color_text,bg=color_btn,relief='ridge')
+	Btn_up.place(x=400,y=195)
+	Btn_down.place(x=400,y=265)
+	Btn_left.place(x=330,y=230)
+	Btn_right.place(x=470,y=230)
+	Btn_home.place(x=400,y=230)
+	root.bind('<KeyPress-i>', call_headup) 
+	root.bind('<KeyPress-k>', call_headdown)
+	root.bind('<KeyPress-j>', call_headleft)
+	root.bind('<KeyPress-l>', call_headright)
+	root.bind('<KeyPress-h>', call_headhome)
+	Btn_up.bind('<ButtonPress-1>', call_headup)
+	Btn_down.bind('<ButtonPress-1>', call_headdown)
+	Btn_left.bind('<ButtonPress-1>', call_headleft)
+	Btn_right.bind('<ButtonPress-1>', call_headright)
+	Btn_home.bind('<ButtonPress-1>', call_headhome)
 
-		root.bind('<Return>', connect)
+	Btn14= tk.Button(root, width=8,height=2, text='Connect',fg=color_text,bg=color_btn,command=connect_click,relief='ridge')
+	Btn14.place(x=300,y=15)						  #Define a Button and put it in position
 
-		var_lip1 = tk.StringVar()#1
-		var_lip1.set(440)
-		var_lip2 = tk.StringVar()
-		var_lip2.set(380)
-		var_err = tk.StringVar()
-		var_err.set(20)
+	root.bind('<Return>', connect)
 
-		var_R = tk.StringVar()
-		var_R.set(0)
+	var_lip1 = tk.StringVar()#1
+	var_lip1.set(440)
+	var_lip2 = tk.StringVar()
+	var_lip2.set(380)
+	var_err = tk.StringVar()
+	var_err.set(20)
 
-		Scale_R = tk.Scale(root,label=None,
-		from_=0,to=255,orient=tk.HORIZONTAL,length=505,
-		showvalue=1,tickinterval=None,resolution=1,variable=var_R,troughcolor='#F44336',command=set_R,fg=color_text,bg=color_bg,highlightthickness=0)
-		Scale_R.place(x=30,y=330)							#Define a Scale and put it in position
+	var_R = tk.StringVar()
+	var_R.set(0)
 
-		var_G = tk.StringVar()
-		var_G.set(0)
+	Scale_R = tk.Scale(root,label=None,
+	from_=0,to=255,orient=tk.HORIZONTAL,length=505,
+	showvalue=1,tickinterval=None,resolution=1,variable=var_R,troughcolor='#F44336',command=set_R,fg=color_text,bg=color_bg,highlightthickness=0)
+	Scale_R.place(x=30,y=330)							#Define a Scale and put it in position
 
-		Scale_G = tk.Scale(root,label=None,
-		from_=0,to=255,orient=tk.HORIZONTAL,length=505,
-		showvalue=1,tickinterval=None,resolution=1,variable=var_G,troughcolor='#00E676',command=set_G,fg=color_text,bg=color_bg,highlightthickness=0)
-		Scale_G.place(x=30,y=360)							#Define a Scale and put it in position
+	var_G = tk.StringVar()
+	var_G.set(0)
 
-		var_B = tk.StringVar()
-		var_B.set(0)
+	Scale_G = tk.Scale(root,label=None,
+	from_=0,to=255,orient=tk.HORIZONTAL,length=505,
+	showvalue=1,tickinterval=None,resolution=1,variable=var_G,troughcolor='#00E676',command=set_G,fg=color_text,bg=color_bg,highlightthickness=0)
+	Scale_G.place(x=30,y=360)							#Define a Scale and put it in position
 
-		Scale_B = tk.Scale(root,label=None,
-		from_=0,to=255,orient=tk.HORIZONTAL,length=505,
-		showvalue=1,tickinterval=None,resolution=1,variable=var_B,troughcolor='#448AFF',command=set_B,fg=color_text,bg=color_bg,highlightthickness=0)
-		Scale_B.place(x=30,y=390)							#Define a Scale and put it in position
+	var_B = tk.StringVar()
+	var_B.set(0)
 
-		var_ec = tk.StringVar() #Z start
-		var_ec.set(0)			
+	Scale_B = tk.Scale(root,label=None,
+	from_=0,to=255,orient=tk.HORIZONTAL,length=505,
+	showvalue=1,tickinterval=None,resolution=1,variable=var_B,troughcolor='#448AFF',command=set_B,fg=color_text,bg=color_bg,highlightthickness=0)
+	Scale_B.place(x=30,y=390)							#Define a Scale and put it in position
 
-		Scale_ExpCom = tk.Scale(root,label='Exposure Compensation Level',
-		from_=-25,to=25,orient=tk.HORIZONTAL,length=315,
-		showvalue=1,tickinterval=None,resolution=1,variable=var_ec,troughcolor='#212121',command=EC_send,fg=color_text,bg=color_bg,highlightthickness=0)
-		Scale_ExpCom.place(x=30,y=610)							#Define a Scale and put it in position
+	var_ec = tk.StringVar() #Z start
+	var_ec.set(0)			
 
-		canvas_cover_exp=tk.Canvas(root,bg=color_bg,height=30,width=510,highlightthickness=0)
-		canvas_cover_exp.place(x=30,y=610+50)
+	Scale_ExpCom = tk.Scale(root,label='Exposure Compensation Level',
+	from_=-25,to=25,orient=tk.HORIZONTAL,length=315,
+	showvalue=1,tickinterval=None,resolution=1,variable=var_ec,troughcolor='#212121',command=EC_send,fg=color_text,bg=color_bg,highlightthickness=0)
+	Scale_ExpCom.place(x=30,y=610)							#Define a Scale and put it in position
 
-		Btn_dEC = tk.Button(root, width=23,height=2, text='Set Default Exposure\nCompensation Level',fg=color_text,bg=color_btn,relief='ridge')
-		Btn_dEC.place(x=30+315+21,y=610+3)
-		Btn_dEC.bind('<ButtonPress-1>', EC_default)	#Z end
+	canvas_cover_exp=tk.Canvas(root,bg=color_bg,height=30,width=510,highlightthickness=0)
+	canvas_cover_exp.place(x=30,y=610+50)
 
-		canvas_cover=tk.Canvas(root,bg=color_bg,height=30,width=510,highlightthickness=0)
-		canvas_cover.place(x=30,y=420)
+	Btn_dEC = tk.Button(root, width=23,height=2, text='Set Default Exposure\nCompensation Level',fg=color_text,bg=color_btn,relief='ridge')
+	Btn_dEC.place(x=30+315+21,y=610+3)
+	Btn_dEC.bind('<ButtonPress-1>', EC_default)	#Z end
 
-		Btn_Steady = tk.Button(root, width=10, text='Steady',fg=color_text,bg=color_btn,relief='ridge')
-		Btn_Steady.place(x=30,y=445)
-		root.bind('<KeyPress-z>', call_steady)
-		Btn_Steady.bind('<ButtonPress-1>', call_steady)
+	canvas_cover=tk.Canvas(root,bg=color_bg,height=30,width=510,highlightthickness=0)
+	canvas_cover.place(x=30,y=420)
 
-		Btn_FindColor = tk.Button(root, width=10, text='FindColor',fg=color_text,bg=color_btn,relief='ridge')
-		Btn_FindColor.place(x=115,y=445)
-		root.bind('<KeyPress-z>', call_FindColor)
-		Btn_FindColor.bind('<ButtonPress-1>', call_FindColor)
+	Btn_Steady = tk.Button(root, width=10, text='Steady',fg=color_text,bg=color_btn,relief='ridge')
+	Btn_Steady.place(x=30,y=445)
+	root.bind('<KeyPress-z>', call_steady)
+	Btn_Steady.bind('<ButtonPress-1>', call_steady)
 
-		Btn_WatchDog = tk.Button(root, width=10, text='WatchDog',fg=color_text,bg=color_btn,relief='ridge')
-		Btn_WatchDog.place(x=200,y=445)
-		root.bind('<KeyPress-z>', call_WatchDog)
-		Btn_WatchDog.bind('<ButtonPress-1>', call_WatchDog)
+	Btn_FindColor = tk.Button(root, width=10, text='FindColor',fg=color_text,bg=color_btn,relief='ridge')
+	Btn_FindColor.place(x=115,y=445)
+	root.bind('<KeyPress-z>', call_FindColor)
+	Btn_FindColor.bind('<ButtonPress-1>', call_FindColor)
 
-		Btn_Fun4 = tk.Button(root, width=10, text='Function 4',fg=color_text,bg=color_btn,relief='ridge')
-		Btn_Fun4.place(x=285,y=445)
-		root.bind('<KeyPress-z>', call_WatchDog)
-		Btn_Fun4.bind('<ButtonPress-1>', call_WatchDog)
+	Btn_WatchDog = tk.Button(root, width=10, text='WatchDog',fg=color_text,bg=color_btn,relief='ridge')
+	Btn_WatchDog.place(x=200,y=445)
+	root.bind('<KeyPress-z>', call_WatchDog)
+	Btn_WatchDog.bind('<ButtonPress-1>', call_WatchDog)
 
-		Btn_Fun5 = tk.Button(root, width=10, text='Function 5',fg=color_text,bg=color_btn,relief='ridge')
-		Btn_Fun5.place(x=370,y=445)
-		root.bind('<KeyPress-z>', call_WatchDog)
-		Btn_Fun5.bind('<ButtonPress-1>', call_WatchDog)
+	Btn_Fun4 = tk.Button(root, width=10, text='Function 4',fg=color_text,bg=color_btn,relief='ridge')
+	Btn_Fun4.place(x=285,y=445)
+	root.bind('<KeyPress-z>', call_WatchDog)
+	Btn_Fun4.bind('<ButtonPress-1>', call_WatchDog)
 
-		Btn_Fun6 = tk.Button(root, width=10, text='Function 6',fg=color_text,bg=color_btn,relief='ridge')
-		Btn_Fun6.place(x=455,y=445)
-		root.bind('<KeyPress-z>', call_WatchDog)
-		Btn_Fun6.bind('<ButtonPress-1>', call_WatchDog)
+	Btn_Fun5 = tk.Button(root, width=10, text='Function 5',fg=color_text,bg=color_btn,relief='ridge')
+	Btn_Fun5.place(x=370,y=445)
+	root.bind('<KeyPress-z>', call_WatchDog)
+	Btn_Fun5.bind('<ButtonPress-1>', call_WatchDog)
 
-		scale_FL(30,490,315)#1
+	Btn_Fun6 = tk.Button(root, width=10, text='Function 6',fg=color_text,bg=color_btn,relief='ridge')
+	Btn_Fun6.place(x=455,y=445)
+	root.bind('<KeyPress-z>', call_WatchDog)
+	Btn_Fun6.bind('<ButtonPress-1>', call_WatchDog)
 
-		global stat
-		if stat==0:			  # Ensure the mainloop runs only once
-			root.mainloop()  # Run the mainloop()
-			stat=1		   # Change the value to '1' so the mainloop() would not run again.
+	scale_FL(30,490,315)#1
+
+	root.protocol("WM_DELETE_WINDOW", on_closing)
+	root.mainloop()  # Run the mainloop()
 
 
 if __name__ == '__main__':
