@@ -1,9 +1,9 @@
 #!/usr/bin/python3
-# File name   : Ultrasonic.py
-# Description : Detection distance and tracking with ultrasonic
-# Website     : www.gewbot.com
+# File name   : info.py
+# Description : Read CPU and Ram Infos
+# Website     : www.adeept.com
 # Author      : William
-# Date        : 2019/08/28
+# Date        : 2019/11/21
 import psutil
 
 def get_cpu_tempfunc():
