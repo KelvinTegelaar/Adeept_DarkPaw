@@ -585,12 +585,12 @@
                 data: function() {
                     return {
                         buttons: [
-                            [!1, "Stand Up", "up", 73, "UDstop"],
+                            [!1, "Stand Up", "standup", 73, ""],
                             [!1, "", "", 0, ""],
-                            [!1, "Head Up", "handup", 79, "HAstop"],
-                            [!1, "Stay Low", "down", 75, "UDstop"],
-                            [!1, "Home", "loose", 80, "stop"],
-                            [!1, "Head Down", "handdown", 76, "HAstop"]
+                            [!1, "Head Up", "headup", 79, ""],
+                            [!1, "Stay Low", "staylow", 75, ""],
+                            [!1, "Home", "home", 80, "stop"],
+                            [!1, "Head Down", "headdown", 76, ""]
                         ],
                         cols: 3
                     }
@@ -619,10 +619,12 @@
                 data: function() {
                     return {
                         buttons: [
-                            [!1, "Action 1", "motionGet", "", "", "stopCV"],
-                            [!1, "Action 2", "automatic", "", "", "automaticOff"],
-                            [!1, "Light", "police", "", "", "policeOff"],
-                            [!1, "Action 4", "trackLine", "", "", "trackLineOff"]
+                            [!1, "Rainbow", "rainbow", "", "", "rainbow"],
+                            [!1, "Breath", "breath", "", "", "breath"],
+                            [!1, "Police", "police", "", "", "police"],
+                            [!1, "Motion Get", "motionGet", "", "", "stopCV"],
+                            [!1, "Auto Matic", "automatic", "", "", "automaticOff"],
+                            [!1, "Track Line", "trackLine", "", "", "trackLineOff"]
                         ],
                         cols: 1
                     }

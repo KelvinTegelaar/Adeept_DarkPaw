@@ -125,26 +125,23 @@ def robotCtrl(command_input, response):
 		# else:
 		#    move.move(speed_set, direction_command, 'no', rad)
 
-	elif 'up' == command_input:
+	elif 'standup' == command_input:
 		direction_command == 'no'
 		SpiderG.walk('StandUp')
 
-	elif 'down' == command_input:
+	elif 'staylow' == command_input:
 		direction_command == 'no'
 		SpiderG.walk('StayLow')
 
-	elif 'handup' == command_input:
+	elif 'headup' == command_input:
 		direction_command == 'no'
 		SpiderG.status_GenOut(0, -150, 0)
 		SpiderG.direct_M_move()
 
-	elif 'handdown' == command_input:
+	elif 'headdown' == command_input:
 		direction_command == 'no'
 		SpiderG.status_GenOut(0, 150, 0)
 		SpiderG.direct_M_move()
-
-	elif 'loose' == command_input:
-		SpiderG.move_init()
 
 	elif 'stop' == command_input:
 		SpiderG.servoStop()
