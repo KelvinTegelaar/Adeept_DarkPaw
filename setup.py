@@ -105,11 +105,10 @@ def install_darkpaw():
 	run_os_command("sudo apt-get update")
 
 	# Install software #1
-	run_os_command("sudo apt-get install -y python-dev python-pip libfreetype6-dev libjpeg-dev build-essential")
+	run_os_command("sudo apt-get install -y python3-dev python3-pip libfreetype6-dev libjpeg-dev build-essential")
 	run_os_command("sudo apt-get install -y i2c-tools")
 	run_os_command("sudo apt-get install -y python3-smbus")
-	run_os_command(
-		"sudo apt-get install -y libqtgui4 libhdf5-dev libhdf5-serial-dev libatlas-base-dev libjasper-dev libqt4-test")
+	run_os_command("sudo apt-get install -y libqtgui4 libhdf5-dev libhdf5-serial-dev libatlas-base-dev libjasper-dev libqt4-test")
 
 	# Create the Access Point
 	run_os_command("git clone https://github.com/oblique/create_ap.git")
@@ -133,6 +132,18 @@ def install_darkpaw():
 
 	# Set up the autostart
 	create_autostart_rc()
+
+	# Download, build & Install Sphinxbase & PocketSphinx
+	run_os_command("sudo apt-get install bison libasound2-dev swig")
+	run_os_command("mkdir //home/pi/speech")
+	run_os_command("wget https://sourceforge.net/projects/cmusphinx/files/sphinxbase/5prealpha/sphinxbase-5prealpha.tar.gz/download -O //home/pi/speech/sphinxbase.tar.gz")
+	run_os_command("wget https://sourceforge.net/projects/cmusphinx/files/pocketsphinx/5prealpha/pocketsphinx-5prealpha.tar.gz/download -O //home/pi/speech/pocketsphinx.tar.gz")
+	run_os_command("cd //home/pi/speech && tar -xzvf sphinxbase.tar.gz")
+	run_os_command("cd //home/pi/speech && tar -xzvf pocketsphinx.tar.gz")
+	run_os_command("cd //home/pi/speech/sphinxbase-5prealpha/ && ./configure -enable-fixed && make && sudo make install", 1)
+	run_os_command("cd //home/pi/speech/pocketsphinx-5prealpha/ && ./configure && make && sudo make install", 1)
+	run_os_command("sudo pip3 install SpeechRecognition", 1)
+	run_os_command("sudo pip3 install pocketsphinx", 1)
 
 
 def install_controller():

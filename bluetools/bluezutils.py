@@ -1,3 +1,5 @@
+#!/usr/bin/python3
+
 import dbus
 
 SERVICE_NAME = "org.bluez"
