@@ -9,6 +9,7 @@
 import socket
 import threading
 import time
+import pygame
 
 import SpiderG
 
@@ -22,6 +23,101 @@ import ultra
 
 functionMode = 0
 
+try:
+	from bluetools import BtAutoPair
+except:
+	pass
+
+PS3_BUTTON_X = 0
+PS3_BUTTON_CIRCLE = 1
+PS3_BUTTON_TRIANGLE = 2
+PS3_BUTTON_QUADRAT = 3
+PS3_BUTTON_L1 = 4
+PS3_BUTTON_R1 = 5
+PS3_BUTTON_L2 = 6
+PS3_BUTTON_R2 = 7
+PS3_BUTTON_SELECT = 8
+PS3_BUTTON_START = 9
+PS3_BUTTON_PS = 10
+PS3_BUTTON_LP = 11
+PS3_BUTTON_RP = 12
+PS3_BUTTON_UP = 13
+PS3_BUTTON_DOWN = 14
+PS3_BUTTON_LEFT = 15
+PS3_BUTTON_RIGHT = 16
+PS3_AXIS_LEFT_HORIZONTAL = 0
+PS3_AXIS_LEFT_VERTICAL = 1
+PS3_AXIS_RIGHT_HORIZONTAL = 2
+PS3_AXIS_RIGHT_VERTICAL = 3
+
+def controller_thread():
+	global autopair
+	autopair = BtAutoPair.BtAutoPair()
+	autopair.enable_pairing()
+	time.sleep(2)
+	pygame.init()
+	clock = pygame.time.Clock()
+	joystickfound = False
+	while not joystickfound:
+		try:
+			pygame.joystick.init()
+			if pygame.joystick.get_count() < 1:
+				pygame.joystick.quit()
+				time.sleep(0.1)
+			else:
+				joystick = pygame.joystick.Joystick(0)
+				joystickfound = True
+				break
+		except pygame.error:
+			pygame.joystick.quit()
+			time.sleep(0.1)
+
+	joystick.init()
+	while 1:
+		hadEvent = False
+		for event in pygame.event.get():
+			if event.type == pygame.JOYBUTTONDOWN:
+				print(event.dict, event.joy, event.button, 'pressed')
+				if event.button == PS3_BUTTON_UP:
+					SpiderG.walk('forward')
+				elif event.button == PS3_BUTTON_DOWN:
+					SpiderG.walk('backward')
+				elif event.button == PS3_BUTTON_LEFT:
+					SpiderG.walk('turnleft')
+				elif event.button == PS3_BUTTON_RIGHT:
+					SpiderG.walk('turnright')
+				elif event.button == PS3_BUTTON_TRIANGLE:
+					SpiderG.status_GenOut(0, -150, 0)
+					SpiderG.direct_M_move()
+				elif event.button == PS3_BUTTON_X:
+					SpiderG.status_GenOut(0, 150, 0)
+					SpiderG.direct_M_move()
+				elif event.button == PS3_BUTTON_CIRCLE:
+					SpiderG.status_GenOut(200, 0, 0)
+					SpiderG.direct_M_move()
+				elif event.button == PS3_BUTTON_QUADRAT:
+					SpiderG.status_GenOut(-200, 0, 0)
+					SpiderG.direct_M_move()
+			elif event.type == pygame.JOYBUTTONUP:
+				print(event.dict, event.joy, event.button, 'released')
+				if event.button == PS3_BUTTON_TRIANGLE:
+					SpiderG.status_GenOut(0, 0, 0)
+					SpiderG.direct_M_move()
+				elif event.button == PS3_BUTTON_X:
+					SpiderG.status_GenOut(0, 0, 0)
+					SpiderG.direct_M_move()
+				elif event.button == PS3_BUTTON_CIRCLE:
+					SpiderG.status_GenOut(0, 0, 0)
+					SpiderG.direct_M_move()
+				elif event.button == PS3_BUTTON_QUADRAT:
+					SpiderG.status_GenOut(0, 0, 0)
+					SpiderG.direct_M_move()
+				else:
+					SpiderG.servoStop()
+#			elif event.type == pygame.JOYAXISMOTION:
+#				print(event.dict, event.joy, event.axis, event.value)
+		clock.tick(30)
+	autopair.disable_pairing()
 
 def ultra_sonic():
 	global ultra_distance
@@ -396,6 +492,10 @@ if __name__ == '__main__':
 	led.colorWipe(255, 16, 0)
 	ledthread = LED.LED_ctrl()
 	ledthread.start()
+
+	controller_threading = threading.Thread(target=controller_thread)
+	controller_threading.setDaemon(True)								# 'True' means it is a front thread,it would close when the mainloop() closes
+	controller_threading.start()										# Thread starts
 
 	while 1:
 		wifi_check()
