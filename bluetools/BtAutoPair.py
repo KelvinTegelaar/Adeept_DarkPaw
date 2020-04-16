@@ -1,6 +1,7 @@
 #!/usr/bin/python3
 # encoding=utf8
 
+import os
 import sys
 import time
 import pexpect
@@ -31,14 +32,14 @@ class BtAutoPair:
 
 	def enable_pairing(self):
 		"""Make device visible to scanning and enable pairing."""
-		print "pairing enabled"
+		print ('pairing enabled')
 		try:
 			out = self.get_output("power on")
 			out = self.get_output("discoverable on")
 			out = self.get_output("pairable on")
 			out = self.get_output("agent off", "unregistered")
 
-		except BluetoothctlError, e:
+		except BluetoothctlError as e:
 			print(e)
 			return None
 
@@ -48,6 +49,6 @@ class BtAutoPair:
 			out = self.get_output("discoverable off")
 			out = self.get_output("pairable off")
 
-		except BluetoothctlError, e:
+		except BluetoothctlError as e:
 			print(e)
 			return None

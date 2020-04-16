@@ -67,7 +67,7 @@ def create_autostart_rc():
 		with open("//home/pi/startup.sh", 'w') as file_to_write:
 			file_to_write.write("#!/bin/sh\nsudo python3 " + thisPath + "/server/server.py")
 		run_os_command('sudo chmod 777 //home/pi/startup.sh')
-		replace_num('/etc/rc.local', 'fi', 'fi\n//home/pi/startup.sh start'
+		replace_num('/etc/rc.local', 'fi', 'fi\n//home/pi/startup.sh start')
 	except:
 		print('Autostart failed.  Please try again')
 		pass
@@ -111,8 +111,8 @@ def install_darkpaw():
 	run_os_command("sudo apt-get install -y libqtgui4 libhdf5-dev libhdf5-serial-dev libatlas-base-dev libjasper-dev libqt4-test")
 
 	# Create the Access Point
-	run_os_command("git clone https://github.com/oblique/create_ap.git")
-	run_os_command("cd //home/pi/create_ap && sudo make install", 1)
+	run_os_command("git clone https://github.com/oblique/create_ap.git //home/pi/create_ap")
+	run_os_command("cd //home/pi/create_ap && make && sudo make install", 1)
 
 	# Install software #2
 	run_os_command("sudo apt-get install -y util-linux procps hostapd iproute2 iw haveged dnsmasq")
@@ -134,7 +134,8 @@ def install_darkpaw():
 	create_autostart_rc()
 
 	# Download, build & Install Sphinxbase & PocketSphinx
-	run_os_command("sudo apt-get install bison libasound2-dev swig")
+	run_os_command("sudo apt-get install -y bison libasound2-dev swig")
+	run_os_command("sudo apt-get install -y libpulse-dev")
 	run_os_command("mkdir //home/pi/speech")
 	run_os_command("wget https://sourceforge.net/projects/cmusphinx/files/sphinxbase/5prealpha/sphinxbase-5prealpha.tar.gz/download -O //home/pi/speech/sphinxbase.tar.gz")
 	run_os_command("wget https://sourceforge.net/projects/cmusphinx/files/pocketsphinx/5prealpha/pocketsphinx-5prealpha.tar.gz/download -O //home/pi/speech/pocketsphinx.tar.gz")
@@ -148,7 +149,7 @@ def install_darkpaw():
 
 def install_controller():
 	# Install Software
-	run_os_command("sudo apt-get install bluetooth libbluetooth3 libbluetooth-dev libusb-dev")
+	run_os_command("sudo apt-get install -y bluetooth libbluetooth3 libbluetooth-dev libusb-dev")
 	run_os_command("sudo systemctl enable bluetooth.service")
 	run_os_command("sudo usermod -G bluetooth -a pi")
 
@@ -161,20 +162,24 @@ def install_controller():
 	run_os_command("sudo pip3 install dbus-python pexpect pygame")
 
 
-def set_new_master()
+def set_new_master():
 	# Set new bluetooth master for PS3 Controller
 	sys.stdout.write('###################################################\n')
 	sys.stdout.write('PLEASE CONNECT PS3 CONTROLLER VIA USB..............\n')
+	sys.stdout.write('AND PRESS ENTER TO CONTINUE........................\n')
 	sys.stdout.write('###################################################\n')
+	input('')
 
 	run_os_command("sudo //home/pi/sixpair/sixpair")
 
 	sys.stdout.write('###################################################\n')
 	sys.stdout.write('PLEASE DISCONNECT PS3 CONTROLLER...................\n')
+	sys.stdout.write('AND PRESS ENTER TO CONTINUE........................\n')
 	sys.stdout.write('###################################################\n')
+	input('')
 
 
-def connect_controller()
+def connect_controller():
 	# this is still in development
 	autopair = BtAutoPair.BtAutoPair()
 	autopair.enable_pairing()
@@ -213,5 +218,5 @@ while True:
 		else:
 			print("Invalid selection.  Please try again")
 	except:
-		print("Invalid selection.  Please try again")
+		print("ex: Invalid selection.  Please try again")
 		pass
