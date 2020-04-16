@@ -188,7 +188,7 @@ def connect_controller()
 while True:
 	try:
 		selection = int(input(
-			"Select an option:\n    1 = Upgrade OS;\n    2 = Install DarkPaw;\n    3 = Install Game Controller;\n    4 = Pair Game Controller;\n    5 = Reboot;\n    6 = Exit\n\nOption to select: "))
+			"Select an option:\n    1 = Upgrade OS;\n    2 = Install DarkPaw;\n    3 = Install Game Controller;\n    4 = Reprog PS3 Game Controller;\n    5 = Pair Game Controller;\n    9 = Reboot;\n    0 = Exit\n\nOption to select: "))
 
 		if selection == 1:
 			upgrade_system()
@@ -204,10 +204,11 @@ while True:
 			sys.stdout.write('###################################################\n')
 		elif selection == 4:
 			set_new_master()
-			connect_controller()
 		elif selection == 5:
+			connect_controller()
+		elif selection == 9:
 			reboot_system()
-		elif selection == 6:
+		elif selection == 0:
 			break
 		else:
 			print("Invalid selection.  Please try again")
