@@ -8,11 +8,6 @@ import os
 import sys
 import time
 
-try:
-	from bluetools import BtAutoPair
-except:
-	pass
-
 curpath = os.path.realpath(__file__)
 thisPath = "/" + os.path.dirname(curpath)
 autostart_dir = "/home/pi/.config/autostart"
@@ -96,7 +91,7 @@ def reboot_system():
 def install_darkpaw():
 	# Enable the interface(s)
 	try:
-		replace_num("/boot/config.txt", '#dtparam=i2c_arm=on', 'dtparam=i2c_arm=on\nstart_x=1\n')
+		replace_num("/boot/config.txt", '#dtparam=i2c_arm=on', 'dtparam=i2c_arm=on\n')
 	except:
 		pass
 
@@ -178,22 +173,10 @@ def set_new_master():
 	sys.stdout.write('###################################################\n')
 	input('')
 
-
-def connect_controller():
-	# this is still in development
-	autopair = BtAutoPair.BtAutoPair()
-	autopair.enable_pairing()
-	sys.stdout.write('###################################################\n')
-	sys.stdout.write('PRESS PS BUTTON ON THE PS3 CONTROLLER (10 sec).....\n')
-	sys.stdout.write('###################################################\n')
-	time.sleep(10)
-	autopair.disable_pairing()
-
-
 while True:
 	try:
 		selection = int(input(
-			"Select an option:\n    1 = Upgrade OS;\n    2 = Install DarkPaw;\n    3 = Install Game Controller;\n    4 = Reprog PS3 Game Controller;\n    5 = Pair Game Controller;\n    9 = Reboot;\n    0 = Exit\n\nOption to select: "))
+			"Select an option:\n    1 = Upgrade OS;\n    2 = Install DarkPaw;\n    3 = Install Game Controller;\n    4 = Reprog PS3 Game Controller;\n    9 = Reboot;\n    0 = Exit\n\nOption to select: "))
 
 		if selection == 1:
 			upgrade_system()
@@ -209,8 +192,6 @@ while True:
 			sys.stdout.write('###################################################\n')
 		elif selection == 4:
 			set_new_master()
-		elif selection == 5:
-			connect_controller()
 		elif selection == 9:
 			reboot_system()
 		elif selection == 0:
