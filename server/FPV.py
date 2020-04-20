@@ -215,6 +215,7 @@ class FPV:
         motionCounter = 0
         #time.sleep(4)
         lastMovtionCaptured = datetime.datetime.now()
+        face_cascade = cv2.CascadeClassifier('haarcascade_frontalface_default.xml')
 
         for frame in camera.capture_continuous(rawCapture, format="bgr", use_video_port=True):
             frame_image = frame.array
@@ -351,6 +352,11 @@ class FPV:
                     switch.switch(2,0)
                     switch.switch(3,0)
 
+            fgray = cv2.cvtColor(frame_image, cv2.COLOR_BGR2GRAY)
+            faces = face_cascade.detectMultiScale(fgray, 1.1, 4)
+
+            for (x, y, w, h) in faces:
+                cv2.rectangle(frame_image, (x, y), (x+w, y+h), (255, 0, 0), 2)
 
             if FindLineMode and not frameRender:#2
                 encoded, buffer = cv2.imencode('.jpg', frame_findline)
