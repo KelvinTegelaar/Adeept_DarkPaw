@@ -737,7 +737,7 @@ class Servo_ctrl(threading.Thread):
 			else:
 				steady()
 				time.sleep(0.03)		
-			print('loop')
+			print('servo ctrl loop')
 
 	def pause(self):
 		self.__flag.clear()
@@ -782,7 +782,7 @@ class Head_ctrl(threading.Thread):
 				self.pause()
 
 			time.sleep(PT_deley)
-			print('loop')
+			print('head ctrl loop')
 
 
 
