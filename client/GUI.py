@@ -169,7 +169,7 @@ def all_btn_red():
 	Btn_Steady.config(bg='#FF6D00', fg='#000000')
 	Btn_FindColor.config(bg='#FF6D00', fg='#000000')
 	Btn_WatchDog.config(bg='#FF6D00', fg='#000000')
-	Btn_Smooth.config(bg='#FF6D00', fg='#000000')
+	Btn_Fun4.config(bg='#FF6D00', fg='#000000')
 	Btn_Fun5.config(bg='#FF6D00', fg='#000000')
 	Btn_Fun6.config(bg='#FF6D00', fg='#000000')
 
@@ -178,7 +178,7 @@ def all_btn_normal():
 	Btn_Steady.config(bg=color_btn, fg=color_text)
 	Btn_FindColor.config(bg=color_btn, fg=color_text)
 	Btn_WatchDog.config(bg=color_btn, fg=color_text)
-	Btn_Smooth.config(bg=color_btn, fg=color_text)
+	Btn_Fun4.config(bg=color_btn, fg=color_text)
 	Btn_Fun5.config(bg=color_btn, fg=color_text)
 	Btn_Fun6.config(bg=color_btn, fg=color_text)
 
@@ -748,7 +748,7 @@ def draw_scale_expcom(x, y, w):
 
 
 def draw_function_button(x, y):
-	global Btn_Steady, Btn_FindColor, Btn_WatchDog, Btn_Smooth, Btn_Fun5, Btn_Fun6
+	global Btn_Steady, Btn_FindColor, Btn_WatchDog, Btn_Fun4, Btn_Fun5, Btn_Fun6
 
 	def call_steady(event):
 		if funcMode == 0:
@@ -768,23 +768,23 @@ def draw_function_button(x, y):
 		else:
 			tcpClicSock.send(('funEnd').encode())
 
-	def call_Smooth(event):
-		if SmoothMode == 0:
-			tcpClicSock.send(('Smooth_on').encode())
+	def call_func4(event):
+		if funcMode == 0:
+			tcpClicSock.send(('function_4_on').encode())
 		else:
-			tcpClicSock.send(('Smooth_off').encode())
+			tcpClicSock.send(('function_4_off').encode())
 
 	def call_func5(event):
 		if funcMode == 0:
-			tcpClicSock.send(('func5_on').encode())
+			tcpClicSock.send(('function_5_on').encode())
 		else:
-			tcpClicSock.send(('func5_off').encode())
+			tcpClicSock.send(('function_5_off').encode())
 
 	def call_func6(event):
 		if funcMode == 0:
-			tcpClicSock.send(('func6_on').encode())
+			tcpClicSock.send(('function_6_on').encode())
 		else:
-			tcpClicSock.send(('func6_off').encode())
+			tcpClicSock.send(('function_6_off').encode())
 
 	Btn_Steady = tk.Button(root, width=7, text='Steady', fg=color_text, bg=color_btn, relief='ridge')
 	Btn_Steady.place(x=x, y=y)
@@ -801,10 +801,10 @@ def draw_function_button(x, y):
 	root.bind('<KeyPress-3>', call_WatchDog)
 	Btn_WatchDog.bind('<ButtonPress-1>', call_WatchDog)
 
-	Btn_Smooth = tk.Button(root, width=7, text='Smooth', fg=color_text, bg=color_btn, relief='ridge')
-	Btn_Smooth.place(x=x + 85 + 85 + 85, y=y)
-	root.bind('<KeyPress-4>', call_Smooth)
-	Btn_Smooth.bind('<ButtonPress-1>', call_Smooth)
+	Btn_Fun4 = tk.Button(root, width=7, text='Function 4', fg=color_text, bg=color_btn, relief='ridge')
+	Btn_Fun4.place(x=x + 85 + 85 + 85, y=y)
+	root.bind('<KeyPress-4>', call_func4)
+	Btn_Fun4.bind('<ButtonPress-1>', call_func4)
 
 	Btn_Fun5 = tk.Button(root, width=7, text='Function 5', fg=color_text, bg=color_btn, relief='ridge')
 	Btn_Fun5.place(x=x + 85 + 85 + 85 + 85, y=y)
