@@ -28,10 +28,10 @@ try:
 except:
 	pass
 
-PS3_BUTTON_X = 0
+PS3_BUTTON_CROSS = 0
 PS3_BUTTON_CIRCLE = 1
 PS3_BUTTON_TRIANGLE = 2
-PS3_BUTTON_QUADRAT = 3
+PS3_BUTTON_SQUARE = 3
 PS3_BUTTON_L1 = 4
 PS3_BUTTON_R1 = 5
 PS3_BUTTON_L2 = 6
@@ -89,13 +89,13 @@ def controller_thread():
 				elif event.button == PS3_BUTTON_TRIANGLE:
 					SpiderG.status_GenOut(0, -150, 0)
 					SpiderG.direct_M_move()
-				elif event.button == PS3_BUTTON_X:
+				elif event.button == PS3_BUTTON_CROSS:
 					SpiderG.status_GenOut(0, 150, 0)
 					SpiderG.direct_M_move()
 				elif event.button == PS3_BUTTON_CIRCLE:
 					SpiderG.status_GenOut(200, 0, 0)
 					SpiderG.direct_M_move()
-				elif event.button == PS3_BUTTON_QUADRAT:
+				elif event.button == PS3_BUTTON_SQUARE:
 					SpiderG.status_GenOut(-200, 0, 0)
 					SpiderG.direct_M_move()
 			elif event.type == pygame.JOYBUTTONUP:
@@ -103,13 +103,13 @@ def controller_thread():
 				if event.button == PS3_BUTTON_TRIANGLE:
 					SpiderG.status_GenOut(0, 0, 0)
 					SpiderG.direct_M_move()
-				elif event.button == PS3_BUTTON_X:
+				elif event.button == PS3_BUTTON_CROSS:
 					SpiderG.status_GenOut(0, 0, 0)
 					SpiderG.direct_M_move()
 				elif event.button == PS3_BUTTON_CIRCLE:
 					SpiderG.status_GenOut(0, 0, 0)
 					SpiderG.direct_M_move()
-				elif event.button == PS3_BUTTON_QUADRAT:
+				elif event.button == PS3_BUTTON_SQUARE:
 					SpiderG.status_GenOut(0, 0, 0)
 					SpiderG.direct_M_move()
 				else:
@@ -412,6 +412,8 @@ def run():
 		elif 'breath' in data:
 			if ledthread.ledfunc != 'breath':
 				tcpCliSock.send(('breath_off').encode())
+				tcpCliSock.send(('police_off').encode())
+				tcpCliSock.send(('rainbow_off').encode())
 				ledthread.ledfunc = 'breath'
 				ledthread.resume()
 				tcpCliSock.send(('breath_on').encode())
@@ -422,7 +424,9 @@ def run():
 
 		elif 'police' in data:
 			if ledthread.ledfunc != 'police':
+				tcpCliSock.send(('breath_off').encode())
 				tcpCliSock.send(('police_off').encode())
+				tcpCliSock.send(('rainbow_off').encode())
 				ledthread.ledfunc = 'police'
 				ledthread.resume()
 				tcpCliSock.send(('police_on').encode())
@@ -433,6 +437,8 @@ def run():
 
 		elif 'rainbow' in data:
 			if ledthread.ledfunc != 'rainbow':
+				tcpCliSock.send(('breath_off').encode())
+				tcpCliSock.send(('police_off').encode())
 				tcpCliSock.send(('rainbow_off').encode())
 				ledthread.ledfunc = 'rainbow'
 				ledthread.resume()
