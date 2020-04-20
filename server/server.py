@@ -255,7 +255,6 @@ def run():
 			functionMode = 0
 			tcpCliSock.send(('function_6_off').encode())
 
-
 		elif 'function_1_off' in data:
 			functionMode = 1
 			SpiderG.steadyModeOff()
