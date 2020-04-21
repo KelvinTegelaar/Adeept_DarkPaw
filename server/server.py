@@ -122,8 +122,9 @@ def controller_thread():
 def ultra_sonic():
 	global ultra_distance
 	while 1:
-		ultra_distance = ultra.checkdist()
-		time.sleep(0.5)
+		if not SpiderG.autopilot:
+			ultra_distance = ultra.checkdist()
+		time.sleep(1)
 
 
 def info_send_client():

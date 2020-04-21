@@ -6,6 +6,7 @@
 import socket
 import time
 import threading
+import ultra
 try:
 	import Adafruit_PCA9685
 	pwm = Adafruit_PCA9685.PCA9685()
@@ -197,6 +198,14 @@ P_command = 'stop'
 T_command = 'stop'
 PT_deley = 0.07
 
+autopilot = False
+usap_rev = False
+usap_steps = 5
+#0.15 m/s
+usap_dist_per_second = 0.15
+#90 degrees in 5 seconds
+usap_sec_per_turn = 6
+
 global_position = 0
 
 gait_set = 1
@@ -255,6 +264,16 @@ def lookleft(speed):
 def lookright(speed):
 	input_pos = goal_dict['P']
 	input_pos -= speed*P_direction
+	goal_dict['P'] = ctrl_range(input_pos, max_dict['P'], min_dict['P'])
+	pwm.set_pwm(P_port, 0, goal_dict['P'])
+
+
+def lookcenter(speed):
+	input_pos = goal_dict['P']
+	if input_pos > P_init_pwm:
+		input_pos -= speed*P_direction
+	else:
+		input_pos += speed*P_direction
 	goal_dict['P'] = ctrl_range(input_pos, max_dict['P'], min_dict['P'])
 	pwm.set_pwm(P_port, 0, goal_dict['P'])
 
@@ -617,7 +636,69 @@ def steady():
 				pass
 
 
+def ultrasonic_autopilot():
+	global autopilot
+	autopilot = True
+	actualIndex = int(usap_steps / 2)
+	degreePerStep = 100.0 / (usap_steps-1)
+	while True:
+		dists = findBestWay()
+		print(dists)
+		maxIndex = dists.index(max(dists))
+		steps = abs(90.0 - maxIndex * degreePerStep) / degreePerStep + 1
+		if dists[maxIndex] > usap_dist_per_second / 2:
+			if maxIndex == int(usap_steps / 2):
+				walk('forward')
+			elif maxIndex < int(usap_steps / 2):
+				walk('turnright')
+				print('right',usap_sec_per_turn / 360.0 * degreePerStep * steps)
+				time.sleep(usap_sec_per_turn / 360.0 * degreePerStep * steps)
+				walk('forward')
+			elif maxIndex > int(usap_steps / 2):
+				walk('turnleft')
+				print('left',usap_sec_per_turn / 360.0 * degreePerStep * steps)
+				time.sleep(usap_sec_per_turn / 360.0 * degreePerStep * steps)
+				walk('forward')
+			actualIndex = maxIndex
+		else:
+			print(dists[maxIndex], usap_dist_per_second)
+			servoStop()
+			head_rotate(50.0)
+			autopilot = False
+			return
+
+def head_rotate(angle):
+	input_pos = int(angle * 2.6) + 150
+	goal_dict['P'] = ctrl_range(input_pos, max_dict['P'], min_dict['P'])
+	pwm.set_pwm(P_port, 0, goal_dict['P'])
+
+def findBestWay():
+	global usap_rev,usap_steps
+	func = reversed if usap_rev else list
+	arr = [0] * usap_steps
+	for i in func(range(usap_steps)):
+		print(i * 100.0 / (usap_steps-1))
+		head_rotate(i * 100.0 / (usap_steps-1))
+		time.sleep(0.2)
+		arr[i] = ultra.checkdist()
+		# dist > 500cm or dist < 5cm means that a timeout occured => value wrong
+		if arr[i] > 5.00 or arr[i] < 0.05:
+			for j in range(3):
+				arr[i] = ultra.checkdist()
+				if arr[i] < 5.00 and arr[i] > 0.05:
+					break
+				else:
+					arr[i] = -1
+
+	usap_rev = not usap_rev
+	return arr
+
+
 def action_1():
+	ultrasonic_autopilot()
+
+
+def action_2():
 	for i in range(-50,50):
 		status_GenOut(0, i*0.01, 0)
 		direct_M_move()
@@ -637,7 +718,7 @@ def action_1():
 	move_init()
 
 
-def action_2():
+def action_3():
 	for i in range(-50,50):
 		status_GenOut(0, 0, i*0.01)
 		direct_M_move()
@@ -771,8 +852,13 @@ class Head_ctrl(threading.Thread):
 				lookright(PT_speed)
 			elif P_command == 'headLeft':
 				lookleft(PT_speed)
+			elif P_command == 'headCenter':
+				lookcenter(PT_speed)
 
 			if max_dict['P'] == goal_dict['P'] or min_dict['P'] == goal_dict['P']:
+				P_command = 'stop'
+
+			if P_init_pwm == goal_dict['P'] and P_command == 'headCenter':
 				P_command = 'stop'
 
 			if max_dict['T'] == goal_dict['T'] or min_dict['T'] == goal_dict['T']:
