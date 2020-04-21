@@ -80,7 +80,7 @@ HRB_init_pwm = 300
 HRM_init_pwm = 300
 HRE_init_pwm = 300
 
-P_init_pwm   = 300
+P_init_pwm   = 280
 T_init_pwm   = 300
 
 def move_init():
@@ -178,13 +178,13 @@ max_dict = {'FLB': 500, 'FLM': 500, 'FLE': 500,
 			'FRB': 500, 'FRM': 500, 'FRE': 500,
 			'HLB': 500, 'HLM': 500, 'HLE': 500,
 			'HRB': 500, 'HRM': 500, 'HRE': 500,
-			'P': 500, 'T': 500}
+			'P': 410, 'T': 500}
 
 min_dict = {'FLB': 100, 'FLM': 100, 'FLE': 100,
 			'FRB': 100, 'FRM': 100, 'FRE': 100,
 			'HLB': 100, 'HLM': 100, 'HLE': 100,
 			'HRB': 100, 'HRM': 100, 'HRE': 100,
-			'P': 100, 'T': 200}
+			'P': 150, 'T': 200}
 
 
 FL_height = 0
