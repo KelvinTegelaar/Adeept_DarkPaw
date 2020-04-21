@@ -527,17 +527,17 @@ def draw_direction_button(x, y):
 	def call_leftside(event):
 		global c_ls_stu
 		if c_ls_stu == 0:
-			tcpClicSock.send(('leftside').encode())
+			tcpClicSock.send(('lookleft').encode())
 			c_ls_stu = 1
 
 	def call_rightside(event):
 		global c_rs_stu
 		if c_rs_stu == 0:
-			tcpClicSock.send(('rightside').encode())
+			tcpClicSock.send(('lookright').encode())
 			c_rs_stu = 1
 
 	Btn0 = tk.Button(root, width=8, text='Left', fg=color_text, bg=color_btn, relief='ridge')
-	Btn0.place(x=x, y=y + 17)
+	Btn0.place(x=x, y=y + 35)
 	Btn0.bind('<ButtonPress-1>', call_left)
 	Btn0.bind('<ButtonRelease-1>', call_turn_stop)
 	root.bind('<KeyPress-a>', call_left)
@@ -558,26 +558,25 @@ def draw_direction_button(x, y):
 	root.bind('<KeyRelease-s>', call_FB_stop)
 
 	Btn3 = tk.Button(root, width=8, text='Right', fg=color_text, bg=color_btn, relief='ridge')
-	Btn3.place(x=x + 190, y=y + 17)
+	Btn3.place(x=x + 190, y=y + 35)
 	Btn3.bind('<ButtonPress-1>', call_right)
 	Btn3.bind('<ButtonRelease-1>', call_turn_stop)
 	root.bind('<KeyPress-d>', call_right)
 	root.bind('<KeyRelease-d>', call_turn_stop)
 
-	### these buttons has no function yet
-	# Btn_LeftSide = tk.Button(root, width=8, text='<--',fg=color_text,bg=color_btn,relief='ridge')
-	# Btn_LeftSide.place(x=30,y=195)
-	# Btn_LeftSide.bind('<ButtonPress-1>', call_leftside)
-	# Btn_LeftSide.bind('<ButtonRelease-1>', call_turn_stop)
-	# root.bind('<KeyPress-q>', call_leftside)
-	# root.bind('<KeyRelease-q>', call_turn_stop)
+	Btn_LeftSide = tk.Button(root, width=8, text='<--',fg=color_text,bg=color_btn,relief='ridge')
+	Btn_LeftSide.place(x=x,y=y)
+	Btn_LeftSide.bind('<ButtonPress-1>', call_leftside)
+	Btn_LeftSide.bind('<ButtonRelease-1>', call_turn_stop)
+	root.bind('<KeyPress-q>', call_leftside)
+	root.bind('<KeyRelease-q>', call_turn_stop)
 
-	# Btn_RightSide = tk.Button(root, width=8, text='-->',fg=color_text,bg=color_btn,relief='ridge')
-	# Btn_RightSide.place(x=170,y=195)
-	# Btn_RightSide.bind('<ButtonPress-1>', call_rightside)
-	# Btn_RightSide.bind('<ButtonRelease-1>', call_turn_stop)
-	# root.bind('<KeyPress-e>', call_rightside)
-	# root.bind('<KeyRelease-e>', call_turn_stop)
+	Btn_RightSide = tk.Button(root, width=8, text='-->',fg=color_text,bg=color_btn,relief='ridge')
+	Btn_RightSide.place(x=x+190,y=y)
+	Btn_RightSide.bind('<ButtonPress-1>', call_rightside)
+	Btn_RightSide.bind('<ButtonRelease-1>', call_turn_stop)
+	root.bind('<KeyPress-e>', call_rightside)
+	root.bind('<KeyRelease-e>', call_turn_stop)
 
 
 def draw_position_button(x, y):
