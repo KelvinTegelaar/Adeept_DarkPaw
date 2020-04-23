@@ -111,6 +111,8 @@ def controller_thread():
 				elif event.button == PS3_BUTTON_SQUARE:
 					SpiderG.status_GenOut(-200, 0, 0)
 					SpiderG.direct_M_move()
+				elif event.button == PS3_BUTTON_START:
+					SpiderG.action_1()
 			elif event.type == pygame.JOYBUTTONUP:
 				print(event.dict, event.joy, event.button, 'released')
 				if event.button == PS3_BUTTON_TRIANGLE:
