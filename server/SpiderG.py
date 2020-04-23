@@ -201,10 +201,10 @@ PT_deley = 0.07
 autopilot = False
 usap_rev = False
 usap_steps = 5
-#0.15 m/s
-usap_dist_per_second = 0.15
-#90 degrees in 5 seconds
-usap_sec_per_turn = 6
+#0.18 m/s
+usap_dist_per_second = 0.18
+#90 degrees in 8 seconds
+usap_sec_per_turn = 8
 
 global_position = 0
 
@@ -640,7 +640,7 @@ def ultrasonic_autopilot():
 	global autopilot
 	autopilot = True
 	actualIndex = int(usap_steps / 2)
-	degreePerStep = 100.0 / (usap_steps-1)
+	degreePerStep = 180.0 / (usap_steps-1)
 	while True:
 		dists = findBestWay()
 		print(dists)

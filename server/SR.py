@@ -23,7 +23,7 @@ def run():
     global v_command
     # obtain audio from the microphone
     r = sr.Recognizer()
-    with sr.Microphone(device_index =2,sample_rate=48000) as source:
+    with sr.Microphone(device_index = 0,sample_rate=48000) as source:
         r.record(source,duration=2)
         # #r.adjust_for_ambient_noise(source)
 

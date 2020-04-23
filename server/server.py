@@ -22,12 +22,17 @@ import switch
 
 import ultra
 
-try:
-	import SR
-	SR_mode = 1
-except:
-	SR_mode = 0
-	pass
+SR_dect = 0
+
+if SR_dect:
+	try:
+		import SR
+		SR_dect = 1
+	except:
+		SR_dect = 0
+		pass
+
+SR_mode = 0
 
 functionMode = 0
 
@@ -216,10 +221,6 @@ def run():
 	ultra_distance = 0
 	direction_command = 'no'
 	turn_command = 'no'
-
-	info_threading = threading.Thread(target=info_send_client)	# Define a thread for FPV and OpenCV
-	info_threading.setDaemon(True)								# 'True' means it is a front thread,it would close when the mainloop() closes
-	info_threading.start()										# Thread starts
 
 	ultra_threading = threading.Thread(target=ultra_sonic)
 	ultra_threading.setDaemon(True)								# 'True' means it is a front thread,it would close when the mainloop() closes
@@ -555,13 +556,13 @@ if __name__ == '__main__':
 	ledthread = LED.LED_ctrl()
 	ledthread.start()
 
-	if SR_mode:
+	if SR_dect:
 		sr = SR_ctrl()
 		sr.start()
 
 	controller_threading = threading.Thread(target=controller_thread)
-	controller_threading.setDaemon(True)								# 'True' means it is a front thread,it would close when the mainloop() closes
-	controller_threading.start()										# Thread starts
+	controller_threading.setDaemon(True)
+	controller_threading.start()
 
 	while 1:
 		wifi_check()
@@ -571,8 +572,19 @@ if __name__ == '__main__':
 			tcpSerSock.bind(ADDR)
 			tcpSerSock.listen(5)  # Start server,waiting for client
 			print('waiting for connection...')
-			tcpCliSock, addr = tcpSerSock.accept()
+			try:
+				tcpCliSock, addr = tcpSerSock.accept()
+			except KeyboardInterrupt:
+				try:
+					if tcpCliSock:
+						tcpCliSock.close()
+				except: pass
+				break
 			print('...connected from :', addr)
+
+			info_threading = threading.Thread(target=info_send_client)	# Define a thread for FPV and OpenCV
+			info_threading.setDaemon(True)								# 'True' means it is a front thread,it would close when the mainloop() closes
+			info_threading.start()										# Thread starts
 
 			fpv = FPV.FPV()
 			fps_threading = threading.Thread(target=FPV_thread)	# Define a thread for FPV and OpenCV
