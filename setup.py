@@ -131,6 +131,7 @@ def install_darkpaw():
 	# Download, build & Install Sphinxbase & PocketSphinx
 	run_os_command("sudo apt-get install -y bison libasound2-dev swig")
 	run_os_command("sudo apt-get install -y libpulse-dev")
+	run_os_command("sudo apt-get install -y portaudio19-dev python3-pyaudio")
 	run_os_command("mkdir //home/pi/speech")
 	run_os_command("wget https://sourceforge.net/projects/cmusphinx/files/sphinxbase/5prealpha/sphinxbase-5prealpha.tar.gz/download -O //home/pi/speech/sphinxbase.tar.gz")
 	run_os_command("wget https://sourceforge.net/projects/cmusphinx/files/pocketsphinx/5prealpha/pocketsphinx-5prealpha.tar.gz/download -O //home/pi/speech/pocketsphinx.tar.gz")
@@ -140,6 +141,8 @@ def install_darkpaw():
 	run_os_command("cd //home/pi/speech/pocketsphinx-5prealpha/ && ./configure && make && sudo make install", 1)
 	run_os_command("sudo pip3 install SpeechRecognition", 1)
 	run_os_command("sudo pip3 install pocketsphinx", 1)
+	run_os_command("sudo amixer -c1 sset Mic 80%")
+	run_os_command("sudo alsactl store")
 
 
 def install_controller():
