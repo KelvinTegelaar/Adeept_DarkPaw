@@ -19,7 +19,15 @@ import FPV
 import info
 import LED
 import switch
+
 import ultra
+
+try:
+	import SR
+	SR_mode = 1
+except:
+	SR_mode = 0
+	pass
 
 functionMode = 0
 
@@ -126,6 +134,54 @@ def ultra_sonic():
 			ultra_distance = ultra.checkdist()
 		time.sleep(1)
 
+class SR_ctrl(threading.Thread):
+	def __init__(self, *args, **kwargs):
+		super(SR_ctrl, self).__init__(*args, **kwargs)
+		self.__flag = threading.Event()
+		self.__flag.set()
+		self.__running = threading.Event()
+		self.__running.set()
+
+	def run(self):
+		global goal_pos, servo_command, init_get, functionMode
+		while self.__running.isSet():
+			self.__flag.wait()
+			if SR_mode:
+				voice_command = SR.run()
+				if voice_command == 'forward':
+					SpiderG.walk('forward')
+					time.sleep(2)
+					SpiderG.servoStop()
+
+				elif voice_command == 'backward':
+					SpiderG.walk('backward')
+					time.sleep(2)
+					SpiderG.servoStop()
+
+				elif voice_command == 'left':
+					SpiderG.walk('turnleft')
+					time.sleep(5)
+					SpiderG.servoStop()
+
+				elif voice_command == 'right':
+					SpiderG.walk('turnright')
+					time.sleep(5)
+					SpiderG.servoStop()
+
+				elif voice_command == 'stop':
+					SpiderG.servoStop()
+			else:
+				self.pause()
+
+	def pause(self):
+		self.__flag.clear()
+
+	def resume(self):
+		self.__flag.set()
+
+	def stop(self):
+		self.__flag.set()
+		self.__running.clear()
 
 def info_send_client():
 	global ultra_distance
@@ -498,6 +554,10 @@ if __name__ == '__main__':
 	led.colorWipe(255, 16, 0)
 	ledthread = LED.LED_ctrl()
 	ledthread.start()
+
+	if SR_mode:
+		sr = SR_ctrl()
+		sr.start()
 
 	controller_threading = threading.Thread(target=controller_thread)
 	controller_threading.setDaemon(True)								# 'True' means it is a front thread,it would close when the mainloop() closes
