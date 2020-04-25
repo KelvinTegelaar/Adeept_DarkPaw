@@ -179,13 +179,13 @@ max_dict = {'FLB': 500, 'FLM': 500, 'FLE': 500,
 			'FRB': 500, 'FRM': 500, 'FRE': 500,
 			'HLB': 500, 'HLM': 500, 'HLE': 500,
 			'HRB': 500, 'HRM': 500, 'HRE': 500,
-			'P': 410, 'T': 500}
+			'P': 430, 'T': 500}
 
 min_dict = {'FLB': 100, 'FLM': 100, 'FLE': 100,
 			'FRB': 100, 'FRM': 100, 'FRE': 100,
 			'HLB': 100, 'HLM': 100, 'HLE': 100,
 			'HRB': 100, 'HRM': 100, 'HRE': 100,
-			'P': 150, 'T': 200}
+			'P': 130, 'T': 200}
 
 
 FL_height = 0
@@ -203,8 +203,9 @@ usap_rev = False
 usap_steps = 5
 #0.18 m/s
 usap_dist_per_second = 0.18
-#90 degrees in 8 seconds
-usap_sec_per_turn = 8
+#45 degrees in 4 seconds
+usap_max_degrees = 90.0
+usap_sec_per_turn = 4
 
 global_position = 0
 
@@ -640,35 +641,47 @@ def ultrasonic_autopilot():
 	global autopilot
 	autopilot = True
 	actualIndex = int(usap_steps / 2)
-	degreePerStep = 180.0 / (usap_steps-1)
+	degreePerStep = usap_max_degrees*2 / (usap_steps-1)
+	forwardIndex = int(usap_steps / 2)
 	while True:
 		dists = findBestWay()
 		print(dists)
 		maxIndex = dists.index(max(dists))
-		steps = abs(90.0 - maxIndex * degreePerStep) / degreePerStep + 1
+		steps = abs(usap_max_degrees - maxIndex * degreePerStep) / degreePerStep + 1
 		if dists[maxIndex] > usap_dist_per_second / 2:
-			if maxIndex == int(usap_steps / 2):
+			if maxIndex == forwardIndex:
 				walk('forward')
-			elif maxIndex < int(usap_steps / 2):
+				print('go forward')
+			elif maxIndex < forwardIndex:
+				print('r-dists',dists[usap_steps-1])
+				if dists[usap_steps-1] < 0.2:
+					walk('backward')
+					print('go backwards before turn')
+					time.sleep(2.5)
 				walk('turnright')
-				print('right',usap_sec_per_turn / 360.0 * degreePerStep * steps)
+				print('turn right for ',usap_sec_per_turn / 360.0 * degreePerStep * steps,' seconds')
 				time.sleep(usap_sec_per_turn / 360.0 * degreePerStep * steps)
 				walk('forward')
-			elif maxIndex > int(usap_steps / 2):
+			elif maxIndex > forwardIndex:
+				print('l-dists',dists[0])
+				if dists[0] < 0.2:
+					walk('backward')
+					print('go backwards before turn')
+					time.sleep(2.5)
 				walk('turnleft')
-				print('left',usap_sec_per_turn / 360.0 * degreePerStep * steps)
+				print('turn left for ',usap_sec_per_turn / 360.0 * degreePerStep * steps,' seconds')
 				time.sleep(usap_sec_per_turn / 360.0 * degreePerStep * steps)
 				walk('forward')
 			actualIndex = maxIndex
 		else:
-			print(dists[maxIndex], usap_dist_per_second)
+			print('leaving autopilot', dists[maxIndex], usap_dist_per_second)
 			servoStop()
-			head_rotate(50.0)
+			head_rotate(usap_max_degrees / 2)
 			autopilot = False
 			return
 
 def head_rotate(angle):
-	input_pos = int(angle * 2.6) + 150
+	input_pos = int(angle * ((max_dict['P'] - min_dict['P']) / usap_max_degrees)) + min_dict['P']
 	goal_dict['P'] = ctrl_range(input_pos, max_dict['P'], min_dict['P'])
 	pwm.set_pwm(P_port, 0, goal_dict['P'])
 
@@ -677,11 +690,10 @@ def findBestWay():
 	func = reversed if usap_rev else list
 	arr = [0] * usap_steps
 	for i in func(range(usap_steps)):
-		print(i * 100.0 / (usap_steps-1))
-		head_rotate(i * 100.0 / (usap_steps-1))
+		head_rotate(i * usap_max_degrees / (usap_steps-1))
 		time.sleep(0.2)
 		arr[i] = ultra.checkdist()
-		# dist > 500cm or dist < 5cm means that a timeout occured => value wrong
+		# dist > 5.00m or dist < 0.05m means that a timeout occured => value wrong
 		if arr[i] > 5.00 or arr[i] < 0.05:
 			for j in range(3):
 				arr[i] = ultra.checkdist()
