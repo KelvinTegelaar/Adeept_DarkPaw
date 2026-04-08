@@ -10,6 +10,7 @@
 import base64
 import logging
 import os
+import subprocess
 import threading
 import time
 
@@ -29,6 +30,8 @@ ANTHROPIC_API_KEY = os.environ.get('ANTHROPIC_API_KEY', '')
 # Model with vision + tool-use support
 MODEL = 'claude-opus-4-5'
 WAKE_WORD = 'bot'
+# Microphone device index; set to None to use the system default
+MIC_DEVICE_INDEX = None
 
 SYSTEM_PROMPT = (
     "You are the AI brain of an Adeept DarkPaw quadruped spider robot. "
@@ -243,16 +246,16 @@ def _image_content_block(jpeg_bytes):
 # ---------------------------------------------------------------------------
 
 def _speak(text):
-    """Speak *text* aloud using espeak (non-blocking)."""
+    """Speak *text* aloud using espeak (non-blocking, no shell expansion)."""
     logger.info('[AI] Speaking: %s', text)
-    # Strip characters that could be interpreted by the shell
-    safe = (
-        text.replace('"', "'")
-            .replace('`', "'")
-            .replace('$', '')
-            .replace('\\', '')
-    )
-    os.system(f'espeak "{safe}" 2>/dev/null &')
+    try:
+        subprocess.Popen(
+            ['espeak', text],
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
+        )
+    except FileNotFoundError:
+        logger.warning('[AI] espeak not found; install with: sudo apt-get install espeak')
 
 # ---------------------------------------------------------------------------
 # Tool execution
@@ -631,14 +634,40 @@ class AIController(threading.Thread):
 
         while self._running.is_set():
             try:
-                with sr.Microphone(device_index=0, sample_rate=48000) as source:
-                    self._recognizer.adjust_for_ambient_noise(source, duration=0.3)
+                mic_kwargs = {}
+                if MIC_DEVICE_INDEX is not None:
+                    mic_kwargs['device_index'] = MIC_DEVICE_INDEX
+                # Try the requested sample rate; fall back to device default
+                for rate in (48000, None):
+                    if rate is not None:
+                        mic_kwargs['sample_rate'] = rate
+                    elif 'sample_rate' in mic_kwargs:
+                        del mic_kwargs['sample_rate']
+                    try:
+                        source_ctx = sr.Microphone(**mic_kwargs)
+                        source_ctx.__enter__()
+                        break
+                    except Exception as exc:  # noqa: BLE001
+                        logger.warning('[AI] Mic init failed (rate=%s): %s', rate, exc)
+                        source_ctx = None
+                else:
+                    logger.error('[AI] Could not open microphone; retrying in 5 s.')
+                    time.sleep(5)
+                    continue
+
+                try:
+                    self._recognizer.adjust_for_ambient_noise(source_ctx, duration=0.3)
                     try:
                         audio = self._recognizer.listen(
-                            source, timeout=5, phrase_time_limit=10
+                            source_ctx, timeout=5, phrase_time_limit=10
                         )
                     except sr.WaitTimeoutError:
                         continue
+                finally:
+                    try:
+                        source_ctx.__exit__(None, None, None)
+                    except Exception:  # noqa: BLE001
+                        pass
 
                 try:
                     text = self._recognizer.recognize_google(audio).lower().strip()
