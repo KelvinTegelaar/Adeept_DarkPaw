@@ -562,6 +562,14 @@ if __name__ == '__main__':
 		sr = SR_ctrl()
 		sr.start()
 
+	try:
+		from ai_controller import AIController
+		ai_ctrl = AIController(led)
+		ai_ctrl.start()
+		print('[AI] AI controller started. Say "Bot, <command>" to interact.')
+	except Exception as _ai_exc:
+		print('[AI] AI controller unavailable: %s' % _ai_exc)
+
 	controller_threading = threading.Thread(target=controller_thread)
 	controller_threading.setDaemon(True)
 	controller_threading.start()
