@@ -200,7 +200,7 @@ def _get_frame_jpeg():
     """
     # --- Attempt 1: shared FPV frame ---
     try:
-        import FPV  # noqa: PLC0415 – local import to avoid circular deps
+        import FPV  # noqa: PLC0415 – local import to avoid circular dependencies
         img = FPV.frame_image
         if img is not None:
             ok, buf = cv2.imencode('.jpg', img)
@@ -628,76 +628,84 @@ class AIController(threading.Thread):
     # Main loop
     # ------------------------------------------------------------------
 
+    def _listen_once(self):
+        """Try to record one audio phrase from the microphone.
+
+        Tries sample rate 48000 first, then falls back to the device
+        default.  Uses a proper ``with`` statement in every path.
+
+        Returns ``(audio, None)`` on success, ``(None, 'timeout')`` when
+        nothing was spoken within the listen timeout, and
+        ``(None, error_string)`` on a hardware/configuration error.
+        """
+        mic_kwargs = {}
+        if MIC_DEVICE_INDEX is not None:
+            mic_kwargs['device_index'] = MIC_DEVICE_INDEX
+
+        last_exc = None
+        for rate in (48000, None):
+            if rate is not None:
+                mic_kwargs['sample_rate'] = rate
+            elif 'sample_rate' in mic_kwargs:
+                del mic_kwargs['sample_rate']
+
+            try:
+                with sr.Microphone(**mic_kwargs) as source:
+                    self._recognizer.adjust_for_ambient_noise(source, duration=0.3)
+                    try:
+                        audio = self._recognizer.listen(
+                            source, timeout=5, phrase_time_limit=10
+                        )
+                        return audio, None
+                    except sr.WaitTimeoutError:
+                        return None, 'timeout'
+            except sr.WaitTimeoutError:
+                return None, 'timeout'
+            except Exception as exc:  # noqa: BLE001
+                last_exc = exc
+                logger.warning('[AI] Mic init failed (rate=%s): %s', rate, exc)
+
+        return None, f'Could not open microphone: {last_exc}'
+
     def run(self):
         logger.info('[AI] Controller started. Say "%s, <command>" to interact.',
                     WAKE_WORD.capitalize())
 
         while self._running.is_set():
+            audio, err = self._listen_once()
+
+            if err == 'timeout':
+                continue
+            if err is not None:
+                logger.error('[AI] %s; retrying in 5 s.', err)
+                time.sleep(5)
+                continue
+
             try:
-                mic_kwargs = {}
-                if MIC_DEVICE_INDEX is not None:
-                    mic_kwargs['device_index'] = MIC_DEVICE_INDEX
-                # Try the requested sample rate; fall back to device default
-                for rate in (48000, None):
-                    if rate is not None:
-                        mic_kwargs['sample_rate'] = rate
-                    elif 'sample_rate' in mic_kwargs:
-                        del mic_kwargs['sample_rate']
-                    try:
-                        source_ctx = sr.Microphone(**mic_kwargs)
-                        source_ctx.__enter__()
-                        break
-                    except Exception as exc:  # noqa: BLE001
-                        logger.warning('[AI] Mic init failed (rate=%s): %s', rate, exc)
-                        source_ctx = None
-                else:
-                    logger.error('[AI] Could not open microphone; retrying in 5 s.')
-                    time.sleep(5)
-                    continue
+                text = self._recognizer.recognize_google(audio).lower().strip()
+            except sr.UnknownValueError:
+                continue
+            except sr.RequestError as exc:
+                logger.warning('[AI] STT request error: %s', exc)
+                time.sleep(2)
+                continue
 
-                try:
-                    self._recognizer.adjust_for_ambient_noise(source_ctx, duration=0.3)
-                    try:
-                        audio = self._recognizer.listen(
-                            source_ctx, timeout=5, phrase_time_limit=10
-                        )
-                    except sr.WaitTimeoutError:
-                        continue
-                finally:
-                    try:
-                        source_ctx.__exit__(None, None, None)
-                    except Exception:  # noqa: BLE001
-                        pass
+            logger.debug('[AI] Heard: %s', text)
 
-                try:
-                    text = self._recognizer.recognize_google(audio).lower().strip()
-                except sr.UnknownValueError:
-                    continue
-                except sr.RequestError as exc:
-                    logger.warning('[AI] STT request error: %s', exc)
-                    time.sleep(2)
-                    continue
+            if not text.startswith(WAKE_WORD):
+                continue
 
-                logger.debug('[AI] Heard: %s', text)
+            # Strip wake word + optional punctuation
+            command = text[len(WAKE_WORD):].lstrip(' ,.:!').strip()
 
-                if not text.startswith(WAKE_WORD):
-                    continue
+            if not command or command in ('stop', 'cancel', 'abort'):
+                self.cancel_task()
+                _speak("Task cancelled.")
+                continue
 
-                # Strip wake word + optional punctuation
-                command = text[len(WAKE_WORD):].lstrip(' ,.:!').strip()
-
-                if not command or command in ('stop', 'cancel', 'abort'):
-                    self.cancel_task()
-                    _speak("Task cancelled.")
-                    continue
-
-                logger.info('[AI] Command received: %s', command)
-                try:
-                    self.led.colorWipe(0, 0, 255)  # Blue = thinking
-                except Exception:  # noqa: BLE001
-                    pass
-                self._dispatch(command)
-
-            except Exception as exc:  # noqa: BLE001
-                logger.error('[AI] Microphone error: %s', exc)
-                time.sleep(1)
+            logger.info('[AI] Command received: %s', command)
+            try:
+                self.led.colorWipe(0, 0, 255)  # Blue = thinking
+            except Exception:  # noqa: BLE001
+                pass
+            self._dispatch(command)
