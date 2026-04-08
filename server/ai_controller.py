@@ -32,6 +32,14 @@ MODEL = 'claude-opus-4-5'
 WAKE_WORD = 'bot'
 # Microphone device index; set to None to use the system default
 MIC_DEVICE_INDEX = None
+# Preferred sample rate for the microphone (DarkPaw USB mic default is 48 kHz)
+PREFERRED_SAMPLE_RATE = 48000
+# Seconds of ambient noise sampling used to calibrate the recogniser threshold
+AMBIENT_NOISE_DURATION = 0.3
+# Seconds to wait for speech before giving up on a single listen attempt
+LISTEN_TIMEOUT = 5
+# Maximum duration of a single spoken phrase captured per attempt
+PHRASE_TIME_LIMIT = 10
 
 SYSTEM_PROMPT = (
     "You are the AI brain of an Adeept DarkPaw quadruped spider robot. "
@@ -354,9 +362,9 @@ def _head_move(direction):
 # Compound tools
 # ---------------------------------------------------------------------------
 
-# Seconds the robot turns right per step to cover one angular slice.
-# At roughly 45 °/step with 8 steps → 360°.  Tune to your robot's speed.
-_TURN_STEP_DURATION = 1.5
+# Seconds the robot turns right per step to cover one 45-degree angular slice.
+# 8 steps × 45° = 360°.  Increase this value if your robot turns too slowly.
+_TURN_STEP_45_DEGREES_DURATION = 1.5
 
 
 def _analyse_jpeg(client, jpeg_bytes, question):
@@ -399,7 +407,7 @@ def _do_360_survey(steps, stop_event):
 
         # Turn right by one step
         SpiderG.walk('turnright')
-        end = time.monotonic() + _TURN_STEP_DURATION
+        end = time.monotonic() + _TURN_STEP_45_DEGREES_DURATION
         while time.monotonic() < end and not stop_event.is_set():
             time.sleep(0.05)
         SpiderG.servoStop()
@@ -454,7 +462,7 @@ def _guard_patrol(duration_min, patrol_steps, led, stop_event):
             time.sleep(0.2)
 
             SpiderG.walk('turnright')
-            _interruptible_sleep(_TURN_STEP_DURATION, stop_event)
+            _interruptible_sleep(_TURN_STEP_45_DEGREES_DURATION, stop_event)
             SpiderG.servoStop()
             time.sleep(0.2)
 
@@ -592,6 +600,13 @@ class AIController(threading.Thread):
         self._task_thread = None
         self._recognizer = sr.Recognizer()
 
+        if not ANTHROPIC_API_KEY:
+            logger.warning(
+                '[AI] ANTHROPIC_API_KEY is not set. '
+                'The controller will start but commands cannot be processed '
+                'until the environment variable is configured.'
+            )
+
     # ------------------------------------------------------------------
     # Public control API
     # ------------------------------------------------------------------
@@ -643,7 +658,7 @@ class AIController(threading.Thread):
             mic_kwargs['device_index'] = MIC_DEVICE_INDEX
 
         last_exc = None
-        for rate in (48000, None):
+        for rate in (PREFERRED_SAMPLE_RATE, None):
             if rate is not None:
                 mic_kwargs['sample_rate'] = rate
             elif 'sample_rate' in mic_kwargs:
@@ -651,10 +666,14 @@ class AIController(threading.Thread):
 
             try:
                 with sr.Microphone(**mic_kwargs) as source:
-                    self._recognizer.adjust_for_ambient_noise(source, duration=0.3)
+                    self._recognizer.adjust_for_ambient_noise(
+                        source, duration=AMBIENT_NOISE_DURATION
+                    )
                     try:
                         audio = self._recognizer.listen(
-                            source, timeout=5, phrase_time_limit=10
+                            source,
+                            timeout=LISTEN_TIMEOUT,
+                            phrase_time_limit=PHRASE_TIME_LIMIT,
                         )
                         return audio, None
                     except sr.WaitTimeoutError:
