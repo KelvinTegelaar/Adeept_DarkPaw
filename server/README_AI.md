@@ -1,14 +1,14 @@
-# DarkPaw AI Controller
+# DarkPaw AI Controller — Jarvis
 
-This module adds a Claude-powered AI brain to the DarkPaw robot.  
-Speak commands prefixed with **"Bot,"** and the robot will understand and execute them — including complex multi-step tasks.
+This module adds a Claude-powered AI brain to the DarkPaw robot, modelled after the Jarvis AI from Iron Man.  
+Speak commands prefixed with **"Jarvis,"** and the robot will understand and execute them — including complex multi-step tasks — with witty, Jarvis-style commentary.
 
 ---
 
 ## How it works
 
 ```
-Microphone → Google STT → "bot, <command>"
+Microphone → Google STT → "jarvis, <command>"
                                   ↓
                           Claude API (tool-use)
                                   ↓
@@ -21,7 +21,7 @@ Microphone → Google STT → "bot, <command>"
                        Robot hardware (SpiderG + LEDs)
 ```
 
-Claude receives the transcript as a plain-text message together with a set of tool definitions.  It then decides which tools to call and in which order, executing complex multi-step plans autonomously.
+Claude receives the transcript as a plain-text message together with a set of tool definitions.  It then decides which tools to call and in which order, executing complex multi-step plans autonomously — and narrates each step in a Jarvis-like voice.
 
 ---
 
@@ -60,21 +60,21 @@ The AI controller thread starts automatically alongside the existing robot serve
 
 ## Voice commands
 
-All commands must begin with **"Bot"** (followed by a comma or pause).
+All commands must begin with **"Jarvis"** (followed by a comma or pause).
 
 | What you say | What the robot does |
 |---|---|
-| `Bot, what do you see?` | Captures an image and asks Claude to describe it |
-| `Bot, tell me what's in front of you` | Same — Claude decides to call `capture_image` |
-| `Bot, walk forward for 3 seconds` | Walks forward for 3 s |
-| `Bot, turn left` | Turns left for 1 s |
-| `Bot, stand up` | Raises body posture |
-| `Bot, make a 360 survey of the room` | Rotates 360° in 8 steps, analysing each view with Claude Vision, then gives a spoken summary |
-| `Bot, enter guard mode` | Patrols for 5 minutes, reporting any changes vs the initial scene |
-| `Bot, guard for 10 minutes with 6 patrol points` | Guard patrol for 10 min with 6 stops per loop |
-| `Bot, walk towards the chair` | Claude captures the scene, locates the chair, then plans a walking sequence |
-| `Bot, set LEDs to red` | Sets RGB LEDs to `(255, 0, 0)` |
-| `Bot, stop` | Cancels the current task immediately |
+| `Jarvis, what do you see?` | Captures an image and asks Claude to describe it |
+| `Jarvis, tell me what's in front of you` | Same — Claude decides to call `capture_image` |
+| `Jarvis, walk forward for 3 seconds` | Walks forward for 3 s |
+| `Jarvis, turn left` | Turns left for 1 s |
+| `Jarvis, stand up` | Raises body posture |
+| `Jarvis, make a 360 survey of the room` | Rotates 360° in 8 steps, analysing each view with Claude Vision, then gives a spoken summary |
+| `Jarvis, enter guard mode` | Patrols for 5 minutes, reporting any changes vs the initial scene |
+| `Jarvis, guard for 10 minutes with 6 patrol points` | Guard patrol for 10 min with 6 stops per loop |
+| `Jarvis, walk towards the chair` | Claude captures the scene, locates the chair, then plans a walking sequence |
+| `Jarvis, set LEDs to red` | Sets RGB LEDs to `(255, 0, 0)` |
+| `Jarvis, stop` | Cancels the current task immediately |
 
 ---
 
@@ -103,7 +103,7 @@ All commands must begin with **"Bot"** (followed by a comma or pause).
 | Constant | File | Purpose |
 |---|---|---|
 | `MODEL` | `ai_controller.py` | Claude model to use (default `claude-opus-4-5`) |
-| `WAKE_WORD` | `ai_controller.py` | Trigger word (default `bot`) |
+| `WAKE_WORD` | `ai_controller.py` | Trigger word (default `jarvis`) |
 | `_TURN_STEP_DURATION` | `ai_controller.py` | Seconds per 45° turn step — calibrate to your robot's speed |
 
 ---
