@@ -311,7 +311,7 @@ async def recv_msg(websocket):
 		await websocket.send(response)
 
 
-async def main_logic(websocket, path):
+async def main_logic(websocket, path=None):
 	await check_permit(websocket)
 	await recv_msg(websocket)
 
@@ -334,25 +334,21 @@ if __name__ == '__main__':
 	ledthread = LED.LED_ctrl()
 	ledthread.start()
 
-while 1:
 	wifi_check()
-	try:  # Start server,waiting for client
-		start_server = websockets.serve(main_logic, '0.0.0.0', 8888)
-		asyncio.get_event_loop().run_until_complete(start_server)
+
+	async def _start():
+		server = await websockets.serve(main_logic, '0.0.0.0', 8888)
 		print('waiting for connection...')
-		# print('...connected from :', addr)
-		break
-	except Exception as e:
-		print(e)
-		led.colorWipe(0, 0, 0)
+		await server.wait_closed()
 
 	try:
 		led.colorWipe(0, 80, 255)
 	except:
 		pass
-try:
-	asyncio.get_event_loop().run_forever()
-except Exception as e:
-	print(e)
-	led.colorWipe(0, 0, 0)
-	move.destroy()
+
+	try:
+		asyncio.run(_start())
+	except Exception as e:
+		print(e)
+		led.colorWipe(0, 0, 0)
+		move.destroy()
