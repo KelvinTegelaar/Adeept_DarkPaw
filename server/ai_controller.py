@@ -215,8 +215,7 @@ def _get_frame_jpeg():
     Tries in order:
     1. The shared global frame captured by the FPV thread (preferred when
        the robot is fully running and FPV has been started).
-    2. A direct cv2.VideoCapture grab (useful during early start-up before
-       the FPV thread is active).
+    2. The Flask camera thread's latest JPEG frame (from BaseCamera).
     """
     # --- Attempt 1: shared FPV frame ---
     try:
@@ -229,20 +228,12 @@ def _get_frame_jpeg():
     except Exception:  # noqa: BLE001
         pass
 
-    # --- Attempt 2: direct capture via picamera2 ---
+    # --- Attempt 2: grab from the Flask camera thread ---
     try:
-        from picamera2 import Picamera2
-        cam = Picamera2()
-        cam.configure(cam.create_still_configuration(main={"size": (640, 480)}))
-        cam.start()
-        time.sleep(0.5)
-        frame = cam.capture_array()
-        cam.stop()
-        cam.close()
+        from camera_opencv import Camera  # noqa: PLC0415
+        frame = Camera.frame  # latest JPEG bytes from BaseCamera thread
         if frame is not None:
-            ok, buf = cv2.imencode('.jpg', frame)
-            if ok:
-                return buf.tobytes()
+            return frame  # already JPEG-encoded
     except Exception:  # noqa: BLE001
         pass
 
@@ -270,13 +261,31 @@ def _image_content_block(jpeg_bytes):
 # ---------------------------------------------------------------------------
 
 def _speak(text):
-    """Speak *text* aloud using espeak-ng or espeak (non-blocking).
+    """Speak *text* aloud using Google TTS for natural-sounding speech.
 
-    Uses English male voice with tuned speed and pitch for a more
-    natural, Jarvis-like tone.
+    Falls back to espeak-ng/espeak if gTTS or audio playback fails.
     """
     logger.info('[AI] Speaking: %s', text)
-    # Try espeak-ng first (better quality), fall back to espeak
+
+    # --- Attempt 1: Google TTS (natural voice) ---
+    try:
+        import tempfile
+        from gtts import gTTS
+        tts = gTTS(text=text, lang='en', tld='co.uk')  # British accent
+        with tempfile.NamedTemporaryFile(suffix='.mp3', delete=False) as f:
+            tmp_path = f.name
+            tts.save(tmp_path)
+        # Play with mpg123 (lightweight MP3 player), then clean up
+        subprocess.Popen(
+            ['bash', '-c', f'mpg123 -q "{tmp_path}" && rm -f "{tmp_path}"'],
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
+        )
+        return
+    except Exception as exc:  # noqa: BLE001
+        logger.debug('[AI] gTTS failed (%s), falling back to espeak', exc)
+
+    # --- Attempt 2: espeak-ng / espeak fallback ---
     for engine in ('espeak-ng', 'espeak'):
         try:
             subprocess.Popen(
@@ -287,7 +296,7 @@ def _speak(text):
             return
         except FileNotFoundError:
             continue
-    logger.warning('[AI] No TTS engine found; install with: sudo apt-get install espeak-ng')
+    logger.warning('[AI] No TTS engine found; install gTTS and mpg123')
 
 # ---------------------------------------------------------------------------
 # Tool execution
