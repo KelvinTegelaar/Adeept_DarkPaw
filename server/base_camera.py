@@ -67,8 +67,9 @@ class BaseCamera(object):
             BaseCamera.thread = threading.Thread(target=self._thread)
             BaseCamera.thread.start()
 
-            # wait until frames are available
-            while self.get_frame() is None:
+            # wait until frames are available (with timeout)
+            deadline = time.time() + 5
+            while self.get_frame() is None and time.time() < deadline:
                 time.sleep(0)
 
     def get_frame(self):
@@ -90,16 +91,20 @@ class BaseCamera(object):
     def _thread(cls):
         """Camera background thread."""
         print('Starting camera thread.')
-        frames_iterator = cls.frames()
-        for frame in frames_iterator:
-            BaseCamera.frame = frame
-            BaseCamera.event.set()  # send signal to clients
-            time.sleep(0)
+        try:
+            frames_iterator = cls.frames()
+            for frame in frames_iterator:
+                BaseCamera.frame = frame
+                BaseCamera.event.set()  # send signal to clients
+                time.sleep(0)
 
-            # if there hasn't been any clients asking for frames in
-            # the last 10 seconds then stop the thread
-            # if time.time() - BaseCamera.last_access > 10:
-            #     frames_iterator.close()
-            #     print('Stopping camera thread due to inactivity.')
-            #     break
-        BaseCamera.thread = None
+                # if there hasn't been any clients asking for frames in
+                # the last 10 seconds then stop the thread
+                # if time.time() - BaseCamera.last_access > 10:
+                #     frames_iterator.close()
+                #     print('Stopping camera thread due to inactivity.')
+                #     break
+        except Exception as e:
+            print(f'Camera thread error: {e}')
+        finally:
+            BaseCamera.thread = None

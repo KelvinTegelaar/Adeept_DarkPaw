@@ -229,16 +229,20 @@ def _get_frame_jpeg():
     except Exception:  # noqa: BLE001
         pass
 
-    # --- Attempt 2: direct capture ---
+    # --- Attempt 2: direct capture via picamera2 ---
     try:
-        cap = cv2.VideoCapture(0)
-        if cap.isOpened():
-            ret, frame = cap.read()
-            cap.release()
-            if ret:
-                ok, buf = cv2.imencode('.jpg', frame)
-                if ok:
-                    return buf.tobytes()
+        from picamera2 import Picamera2
+        cam = Picamera2()
+        cam.configure(cam.create_still_configuration(main={"size": (640, 480)}))
+        cam.start()
+        time.sleep(0.5)
+        frame = cam.capture_array()
+        cam.stop()
+        cam.close()
+        if frame is not None:
+            ok, buf = cv2.imencode('.jpg', frame)
+            if ok:
+                return buf.tobytes()
     except Exception:  # noqa: BLE001
         pass
 
@@ -266,16 +270,24 @@ def _image_content_block(jpeg_bytes):
 # ---------------------------------------------------------------------------
 
 def _speak(text):
-    """Speak *text* aloud using espeak (non-blocking, no shell expansion)."""
+    """Speak *text* aloud using espeak-ng or espeak (non-blocking).
+
+    Uses English male voice with tuned speed and pitch for a more
+    natural, Jarvis-like tone.
+    """
     logger.info('[AI] Speaking: %s', text)
-    try:
-        subprocess.Popen(
-            ['espeak', text],
-            stdout=subprocess.DEVNULL,
-            stderr=subprocess.DEVNULL,
-        )
-    except FileNotFoundError:
-        logger.warning('[AI] espeak not found; install with: sudo apt-get install espeak')
+    # Try espeak-ng first (better quality), fall back to espeak
+    for engine in ('espeak-ng', 'espeak'):
+        try:
+            subprocess.Popen(
+                [engine, '-v', 'en+m3', '-s', '160', '-p', '40', text],
+                stdout=subprocess.DEVNULL,
+                stderr=subprocess.DEVNULL,
+            )
+            return
+        except FileNotFoundError:
+            continue
+    logger.warning('[AI] No TTS engine found; install with: sudo apt-get install espeak-ng')
 
 # ---------------------------------------------------------------------------
 # Tool execution
@@ -742,15 +754,20 @@ def test_jarvis_response(command_text):
         return {"ok": False, "response": None,
                 "error": "ANTHROPIC_API_KEY is not set"}
 
-    speak_only_tools = [t for t in TOOLS if t['name'] == 'speak']
     collected_speech = []
+    _original_speak = _speak
 
     def _capturing_speak(text):
         collected_speech.append(text)
+        _original_speak(text)
 
     client = anthropic.Anthropic(api_key=ANTHROPIC_API_KEY)
     messages = [{"role": "user", "content": command_text}]
     stop_event = threading.Event()
+
+    # Dummy LED object for tool execution
+    class _DummyLED:
+        def colorWipe(self, r, g, b): pass
 
     try:
         while not stop_event.is_set():
@@ -758,7 +775,7 @@ def test_jarvis_response(command_text):
                 model=MODEL,
                 max_tokens=1024,
                 system=SYSTEM_PROMPT,
-                tools=speak_only_tools,
+                tools=TOOLS,
                 messages=messages,
             )
 
@@ -772,13 +789,22 @@ def test_jarvis_response(command_text):
                 messages.append({"role": "assistant", "content": response.content})
                 tool_results = []
                 for block in response.content:
-                    if block.type == 'tool_use' and block.name == 'speak':
-                        text = block.input.get('text', '')
-                        _capturing_speak(text)
+                    if block.type == 'tool_use':
+                        logger.info('[AI] Test tool: %s  args: %s',
+                                    block.name, block.input)
+                        if block.name == 'speak':
+                            text = block.input.get('text', '')
+                            _capturing_speak(text)
+                            result_content = [{"type": "text",
+                                               "text": f"Spoke: {text}"}]
+                        else:
+                            result_content = _execute_tool(
+                                block.name, block.input,
+                                _DummyLED(), stop_event)
                         tool_results.append({
                             "type": "tool_result",
                             "tool_use_id": block.id,
-                            "content": [{"type": "text", "text": f"Spoke: {text}"}],
+                            "content": result_content,
                         })
                 messages.append({"role": "user", "content": tool_results})
             else:

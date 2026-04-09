@@ -412,19 +412,25 @@ class Camera(BaseCamera):
 
     @staticmethod
     def frames():
-        camera = cv2.VideoCapture(Camera.video_source)
-        if not camera.isOpened():
-            raise RuntimeError('Could not start camera.')
+        from picamera2 import Picamera2
+        camera = Picamera2()
+        camera.configure(camera.create_video_configuration(
+            main={"size": (640, 480), "format": "BGR888"}
+        ))
+        camera.start()
 
         cvt = CVThread()
         cvt.start()
 
         while True:
-            # read current frame
-            _, img = camera.read()
+            img = camera.capture_array()
+
+            if img is None:
+                time.sleep(0.1)
+                continue
 
             if Camera.modeSelect == 'none':
-                switch.switch(1,0)
+                switch.switch(1, 0)
                 cvt.pause()
             else:
                 if cvt.CVThreading:
@@ -433,8 +439,6 @@ class Camera(BaseCamera):
                     cvt.mode(Camera.modeSelect, img)
                     cvt.resume()
                 img = cvt.elementDraw(img)
-            
-
 
             # encode as a jpeg image and return it
             yield cv2.imencode('.jpg', img)[1].tobytes()
