@@ -40,6 +40,8 @@ AMBIENT_NOISE_DURATION = 0.3
 LISTEN_TIMEOUT = 5
 # Maximum duration of a single spoken phrase captured per attempt
 PHRASE_TIME_LIMIT = 10
+# Timeout in seconds when waiting for espeak to finish
+TTS_TIMEOUT = 10
 
 SYSTEM_PROMPT = (
     "You are Jarvis, the AI brain of an Adeept DarkPaw quadruped spider robot — "
@@ -295,7 +297,7 @@ def _execute_tool(name, tool_input, led, stop_event):
         while time.monotonic() < end and not stop_event.is_set():
             time.sleep(0.05)
         SpiderG.servoStop()
-        return [{"type": "text", "text": f"Walked {direction} for {duration:.1f}s. Movement complete."}]
+        return [{"type": "text", "text": f"Walked {direction} for {duration:.1f}s."}]
 
     # -- look ------------------------------------------------------------------
     if name == 'look':
@@ -330,7 +332,7 @@ def _execute_tool(name, tool_input, led, stop_event):
     # -- stop ------------------------------------------------------------------
     if name == 'stop':
         SpiderG.servoStop()
-        return [{"type": "text", "text": "All movement stopped. Standing by, sir."}]
+        return [{"type": "text", "text": "All movement stopped."}]
 
     # -- set_leds --------------------------------------------------------------
     if name == 'set_leds':
@@ -581,6 +583,221 @@ def process_command(command_text, led, stop_event):
             # Unexpected stop reason; log and exit
             logger.warning('[AI] Unexpected stop_reason: %s', response.stop_reason)
             break
+
+# ---------------------------------------------------------------------------
+# Web-test helpers  (called by the Flask /api/ai/* routes in app.py)
+# ---------------------------------------------------------------------------
+
+# Holds the running AIController instance so Flask routes can dispatch to it.
+_active_controller = None
+
+
+def set_active_controller(ctrl):
+    """Register the running AIController instance for web-test use."""
+    global _active_controller
+    _active_controller = ctrl
+
+
+# Maximum length (chars) of text passed to espeak (also enforced by the web route).
+MAX_TTS_TEXT_LENGTH = 200
+
+
+def list_microphones():
+    """Return a dict describing available microphones.
+
+    Returns::
+
+        {
+            "microphones": ["default", "USB Audio Device", ...],
+            "default_index": 0,
+            "error": None | "<error string>"
+        }
+    """
+    try:
+        names = sr.Microphone.list_microphone_names()
+        return {"microphones": names, "default_index": MIC_DEVICE_INDEX, "error": None}
+    except Exception:  # noqa: BLE001
+        logger.exception('[AI] list_microphones error')
+        return {"microphones": [], "default_index": None,
+                "error": "Could not enumerate microphone devices"}
+
+
+def test_tts(text="Jarvis online. Audio systems nominal."):
+    """Run espeak with *text* and report success or failure.
+
+    Returns::
+
+        {"ok": True, "text": "...", "error": None | "<error>"}
+    """
+    # Truncate first, then strip non-printable characters so the length limit is
+    # applied before filtering.  No additional escaping is needed because we use
+    # a subprocess argument list (shell=False), which passes the string verbatim
+    # to the OS without shell interpretation.
+    sanitized = ''.join(ch for ch in text[:MAX_TTS_TEXT_LENGTH] if ch.isprintable())
+    try:
+        result = subprocess.run(
+            ['espeak', sanitized],
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.PIPE,
+            timeout=TTS_TIMEOUT,
+        )
+        if result.returncode == 0:
+            return {"ok": True, "text": sanitized, "error": None}
+        err = result.stderr.decode(errors='replace').strip()
+        return {"ok": False, "text": sanitized, "error": err or "espeak returned non-zero exit code"}
+    except FileNotFoundError:
+        return {"ok": False, "text": sanitized,
+                "error": "espeak not found — install with: sudo apt-get install espeak"}
+    except subprocess.TimeoutExpired:
+        return {"ok": False, "text": sanitized, "error": "espeak timed out"}
+    except Exception:  # noqa: BLE001
+        logger.exception('[AI] test_tts unexpected error')
+        return {"ok": False, "text": sanitized, "error": "Unexpected TTS error (see server logs)"}
+
+
+def test_mic_capture():
+    """Attempt to record a short phrase and transcribe it.
+
+    Tries every microphone in order until one works.  Returns::
+
+        {
+            "ok": True | False,
+            "transcript": "<text>" | None,
+            "mic_used": "<name>" | None,
+            "error": None | "<error>"
+        }
+    """
+    recognizer = sr.Recognizer()
+    mic_names = []
+    try:
+        mic_names = sr.Microphone.list_microphone_names()
+    except Exception:  # noqa: BLE001
+        logger.exception('[AI] test_mic_capture: cannot list microphones')
+        return {"ok": False, "transcript": None, "mic_used": None,
+                "error": "Cannot list microphones (see server logs)"}
+
+    if not mic_names:
+        return {"ok": False, "transcript": None, "mic_used": None,
+                "error": "No microphones found"}
+
+    # Try the configured index first; fall back to 0 then the rest
+    indices = list(range(len(mic_names)))
+    if MIC_DEVICE_INDEX is not None and MIC_DEVICE_INDEX in indices:
+        indices.remove(MIC_DEVICE_INDEX)
+        indices.insert(0, MIC_DEVICE_INDEX)
+
+    for idx in indices:
+        for rate in (PREFERRED_SAMPLE_RATE, None):
+            kwargs = {'device_index': idx}
+            if rate is not None:
+                kwargs['sample_rate'] = rate
+            try:
+                with sr.Microphone(**kwargs) as source:
+                    recognizer.adjust_for_ambient_noise(source, duration=0.5)
+                    try:
+                        audio = recognizer.listen(
+                            source,
+                            timeout=LISTEN_TIMEOUT,
+                            phrase_time_limit=PHRASE_TIME_LIMIT,
+                        )
+                    except sr.WaitTimeoutError:
+                        return {"ok": False, "transcript": None,
+                                "mic_used": mic_names[idx],
+                                "error": (
+                                    f"Microphone opened successfully but no speech detected "
+                                    f"within {LISTEN_TIMEOUT} seconds. "
+                                    f"Try speaking after clicking the button."
+                                )}
+                try:
+                    transcript = recognizer.recognize_google(audio)
+                    return {"ok": True, "transcript": transcript,
+                            "mic_used": mic_names[idx], "error": None}
+                except sr.UnknownValueError:
+                    return {"ok": True, "transcript": "(audio captured but not understood)",
+                            "mic_used": mic_names[idx], "error": None}
+                except sr.RequestError:
+                    return {"ok": False, "transcript": None,
+                            "mic_used": mic_names[idx],
+                            "error": "STT request failed — check internet connection"}
+            except Exception:  # noqa: BLE001
+                logger.debug('[AI] test_mic_capture: mic index %d rate %s failed', idx, rate)
+
+    return {"ok": False, "transcript": None, "mic_used": None,
+            "error": "No microphone could be opened (see server logs)"}
+
+
+def test_jarvis_response(command_text):
+    """Send *command_text* to Claude using a speak-only tool and return the reply.
+
+    Uses a stripped-down tool set (only *speak*) so no robot hardware is
+    activated during a web test.  Returns::
+
+        {
+            "ok": True | False,
+            "response": "<Jarvis reply>" | None,
+            "error": None | "<error>"
+        }
+    """
+    if not ANTHROPIC_API_KEY:
+        return {"ok": False, "response": None,
+                "error": "ANTHROPIC_API_KEY is not set"}
+
+    speak_only_tools = [t for t in TOOLS if t['name'] == 'speak']
+    collected_speech = []
+
+    def _capturing_speak(text):
+        collected_speech.append(text)
+
+    client = anthropic.Anthropic(api_key=ANTHROPIC_API_KEY)
+    messages = [{"role": "user", "content": command_text}]
+    stop_event = threading.Event()
+
+    try:
+        while not stop_event.is_set():
+            response = client.messages.create(
+                model=MODEL,
+                max_tokens=1024,
+                system=SYSTEM_PROMPT,
+                tools=speak_only_tools,
+                messages=messages,
+            )
+
+            if response.stop_reason == 'end_turn':
+                for block in response.content:
+                    if hasattr(block, 'text') and block.text:
+                        collected_speech.append(block.text)
+                break
+
+            if response.stop_reason == 'tool_use':
+                messages.append({"role": "assistant", "content": response.content})
+                tool_results = []
+                for block in response.content:
+                    if block.type == 'tool_use' and block.name == 'speak':
+                        text = block.input.get('text', '')
+                        _capturing_speak(text)
+                        tool_results.append({
+                            "type": "tool_result",
+                            "tool_use_id": block.id,
+                            "content": [{"type": "text", "text": f"Spoke: {text}"}],
+                        })
+                messages.append({"role": "user", "content": tool_results})
+            else:
+                break
+
+        reply = " ".join(collected_speech).strip() or "(no spoken reply)"
+        return {"ok": True, "response": reply, "error": None}
+
+    except anthropic.APIError as exc:
+        # Surface only the structured status code + message, not any stack frames
+        status = getattr(exc, 'status_code', None)
+        msg = getattr(exc, 'message', None) or type(exc).__name__
+        error_str = f"Claude API error {status}: {msg}" if status else f"Claude API error: {msg}"
+        return {"ok": False, "response": None, "error": error_str}
+    except Exception:  # noqa: BLE001
+        logger.exception('[AI] test_jarvis_response unexpected error')
+        return {"ok": False, "response": None,
+                "error": "Unexpected error contacting Jarvis (see server logs)"}
+
 
 # ---------------------------------------------------------------------------
 # AIController thread

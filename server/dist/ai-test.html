@@ -1,0 +1,357 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Jarvis — AI Diagnostics</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Segoe UI', Arial, sans-serif;
+      background: #0d1117;
+      color: #c9d1d9;
+      min-height: 100vh;
+      padding: 24px 16px;
+    }
+    h1 {
+      font-size: 1.6rem;
+      color: #58a6ff;
+      margin-bottom: 4px;
+    }
+    .subtitle { color: #8b949e; font-size: 0.9rem; margin-bottom: 24px; }
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+      gap: 16px;
+      max-width: 1100px;
+      margin: 0 auto;
+    }
+    .card {
+      background: #161b22;
+      border: 1px solid #30363d;
+      border-radius: 8px;
+      padding: 18px 20px;
+    }
+    .card h2 {
+      font-size: 1rem;
+      color: #e6edf3;
+      margin-bottom: 12px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .card h2 .icon { font-size: 1.2rem; }
+    label { display: block; font-size: 0.85rem; color: #8b949e; margin-bottom: 4px; }
+    input[type="text"], textarea {
+      width: 100%;
+      background: #0d1117;
+      border: 1px solid #30363d;
+      border-radius: 6px;
+      color: #c9d1d9;
+      padding: 8px 10px;
+      font-size: 0.9rem;
+      margin-bottom: 10px;
+      resize: vertical;
+    }
+    input[type="text"]:focus, textarea:focus {
+      outline: none;
+      border-color: #58a6ff;
+    }
+    button {
+      background: #21262d;
+      color: #c9d1d9;
+      border: 1px solid #30363d;
+      border-radius: 6px;
+      padding: 7px 16px;
+      font-size: 0.85rem;
+      cursor: pointer;
+      transition: background 0.15s;
+    }
+    button:hover { background: #30363d; }
+    button:disabled { opacity: 0.45; cursor: not-allowed; }
+    button.primary {
+      background: #1f6feb;
+      border-color: #1f6feb;
+      color: #fff;
+    }
+    button.primary:hover { background: #388bfd; border-color: #388bfd; }
+    .result {
+      margin-top: 12px;
+      background: #0d1117;
+      border: 1px solid #30363d;
+      border-radius: 6px;
+      padding: 10px 12px;
+      font-size: 0.82rem;
+      font-family: 'Consolas', 'Courier New', monospace;
+      white-space: pre-wrap;
+      word-break: break-word;
+      min-height: 42px;
+      color: #8b949e;
+    }
+    .result.ok { border-left: 3px solid #3fb950; color: #3fb950; }
+    .result.err { border-left: 3px solid #f85149; color: #f85149; }
+    .result.info { border-left: 3px solid #58a6ff; color: #79c0ff; }
+    .status-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 0.85rem;
+      margin-bottom: 6px;
+    }
+    .dot {
+      width: 10px; height: 10px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+    .dot.green { background: #3fb950; }
+    .dot.red   { background: #f85149; }
+    .dot.grey  { background: #6e7681; }
+    .mic-list {
+      list-style: none;
+      margin: 8px 0 0;
+      padding: 0;
+    }
+    .mic-list li {
+      font-size: 0.82rem;
+      padding: 4px 0;
+      border-bottom: 1px solid #21262d;
+      color: #8b949e;
+    }
+    .mic-list li:last-child { border-bottom: none; }
+    .mic-list li.active { color: #3fb950; }
+    .spinner {
+      display: inline-block;
+      width: 14px; height: 14px;
+      border: 2px solid #30363d;
+      border-top-color: #58a6ff;
+      border-radius: 50%;
+      animation: spin 0.7s linear infinite;
+      vertical-align: middle;
+      margin-right: 6px;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .back-link {
+      display: inline-block;
+      margin-bottom: 18px;
+      color: #58a6ff;
+      text-decoration: none;
+      font-size: 0.85rem;
+    }
+    .back-link:hover { text-decoration: underline; }
+  </style>
+</head>
+<body>
+  <div style="max-width:1100px;margin:0 auto">
+    <a class="back-link" href="/">&larr; Back to controller</a>
+    <h1>🤖 Jarvis — AI Diagnostics</h1>
+    <p class="subtitle">Test microphone input, text-to-speech output, and the Jarvis AI connection from your browser.</p>
+
+    <div class="grid">
+
+      <!-- ── Status card ─────────────────────────────────── -->
+      <div class="card" id="card-status">
+        <h2><span class="icon">⚙️</span> AI Status</h2>
+        <div id="status-body"><span class="spinner"></span> Loading…</div>
+      </div>
+
+      <!-- ── Microphone card ─────────────────────────────── -->
+      <div class="card" id="card-mics">
+        <h2><span class="icon">🎤</span> Microphones</h2>
+        <div id="mic-body"><span class="spinner"></span> Loading…</div>
+        <button id="btn-mic-test" class="primary" style="margin-top:12px" onclick="runMicTest()">
+          Record &amp; Transcribe (5 s)
+        </button>
+        <div class="result info" id="mic-result" style="display:none"></div>
+      </div>
+
+      <!-- ── TTS card ────────────────────────────────────── -->
+      <div class="card">
+        <h2><span class="icon">🔊</span> Text-to-Speech</h2>
+        <label for="tts-input">Phrase to speak</label>
+        <input type="text" id="tts-input" value="Jarvis online. Audio systems nominal." />
+        <button class="primary" onclick="runTtsTest()">Speak via espeak</button>
+        <div class="result" id="tts-result" style="display:none"></div>
+      </div>
+
+      <!-- ── Text command card ───────────────────────────── -->
+      <div class="card" style="grid-column: span 2">
+        <h2><span class="icon">💬</span> Send Text Command to Jarvis</h2>
+        <p style="font-size:0.82rem;color:#8b949e;margin-bottom:10px">
+          Type a command and see what Jarvis would say — no voice or robot movement required.
+          Uses the live Claude API, so <strong>ANTHROPIC_API_KEY must be set</strong>.
+        </p>
+        <label for="cmd-input">Command</label>
+        <textarea id="cmd-input" rows="2" placeholder="e.g. Hello! Are you there?"></textarea>
+        <button class="primary" onclick="runTextCommand()">Send to Jarvis</button>
+        <div class="result" id="cmd-result" style="display:none"></div>
+      </div>
+
+    </div>
+  </div>
+
+  <script>
+    // ── helpers ───────────────────────────────────────────────────────────────
+
+    function setResult(id, text, state) {
+      const el = document.getElementById(id);
+      el.textContent = text;
+      el.className = 'result ' + (state || '');
+      el.style.display = 'block';
+    }
+
+    function setLoading(id, msg) {
+      const el = document.getElementById(id);
+      el.innerHTML = '<span class="spinner"></span>' + (msg || 'Working…');
+      el.className = 'result info';
+      el.style.display = 'block';
+    }
+
+    async function apiFetch(url, opts) {
+      const res = await fetch(url, opts);
+      if (!res.ok) throw new Error('HTTP ' + res.status);
+      return res.json();
+    }
+
+    // ── Status ────────────────────────────────────────────────────────────────
+
+    async function loadStatus() {
+      try {
+        const d = await apiFetch('/api/ai/status');
+        const body = document.getElementById('status-body');
+        body.innerHTML = '';
+
+        function row(label, ok, detail) {
+          const div = document.createElement('div');
+          div.className = 'status-row';
+          div.innerHTML =
+            '<div class="dot ' + (ok ? 'green' : 'red') + '"></div>' +
+            '<span>' + label + '</span>' +
+            (detail ? '<span style="color:#6e7681;margin-left:auto;font-size:0.8rem">' + escHtml(detail) + '</span>' : '');
+          body.appendChild(div);
+        }
+
+        row('API key configured', d.api_key_set, d.api_key_set ? 'set' : 'NOT SET');
+        row('Wake word', true, '"' + d.wake_word + '"');
+        row('Model', true, d.model);
+        row('espeak available', !d.tts_error, d.tts_error || 'ok');
+
+        // Store mic info for the mic card
+        renderMics(d.microphones, d.default_mic_index, d.mic_error);
+      } catch (e) {
+        document.getElementById('status-body').textContent = 'Error loading status: ' + e.message;
+      }
+    }
+
+    function renderMics(mics, defaultIdx, err) {
+      const body = document.getElementById('mic-body');
+      if (err) {
+        body.innerHTML = '<div style="color:#f85149;font-size:0.85rem">⚠ ' + escHtml(err) + '</div>';
+        return;
+      }
+      if (!mics || mics.length === 0) {
+        body.innerHTML = '<div style="color:#f85149;font-size:0.85rem">No microphones detected.</div>';
+        return;
+      }
+      const ul = document.createElement('ul');
+      ul.className = 'mic-list';
+      mics.forEach((name, i) => {
+        const li = document.createElement('li');
+        const isDefault = (defaultIdx === null && i === 0) || defaultIdx === i;
+        li.className = isDefault ? 'active' : '';
+        li.textContent = (isDefault ? '★ ' : '') + '[' + i + '] ' + name;
+        ul.appendChild(li);
+      });
+      body.innerHTML = '<div style="font-size:0.82rem;color:#8b949e;margin-bottom:6px">' +
+        mics.length + ' microphone(s) found. Active (★) = configured device.</div>';
+      body.appendChild(ul);
+    }
+
+    // ── TTS ───────────────────────────────────────────────────────────────────
+
+    async function runTtsTest() {
+      const text = document.getElementById('tts-input').value.trim();
+      if (!text) return;
+      setLoading('tts-result', 'Sending to espeak…');
+      try {
+        const d = await apiFetch('/api/ai/tts-test', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ text }),
+        });
+        if (d.ok) {
+          setResult('tts-result', '✓ espeak ran successfully.\nPhrase: "' + d.text + '"', 'ok');
+        } else {
+          setResult('tts-result', '✗ TTS failed:\n' + d.error, 'err');
+        }
+      } catch (e) {
+        setResult('tts-result', 'Request error: ' + e.message, 'err');
+      }
+    }
+
+    // ── Mic test ──────────────────────────────────────────────────────────────
+
+    async function runMicTest() {
+      const btn = document.getElementById('btn-mic-test');
+      btn.disabled = true;
+      setLoading('mic-result', 'Listening for up to 5 seconds — speak now…');
+      try {
+        const d = await apiFetch('/api/ai/mic-test', { method: 'POST' });
+        if (d.ok) {
+          const lines = [
+            '✓ Microphone: ' + (d.mic_used || 'unknown'),
+            'Transcript: "' + (d.transcript || '') + '"',
+          ];
+          setResult('mic-result', lines.join('\n'), 'ok');
+        } else {
+          setResult('mic-result',
+            '✗ Mic test failed:\n' + d.error +
+            (d.mic_used ? '\n(mic: ' + d.mic_used + ')' : ''),
+            'err');
+        }
+      } catch (e) {
+        setResult('mic-result', 'Request error: ' + e.message, 'err');
+      } finally {
+        btn.disabled = false;
+      }
+    }
+
+    // ── Text command ──────────────────────────────────────────────────────────
+
+    async function runTextCommand() {
+      const command = document.getElementById('cmd-input').value.trim();
+      if (!command) return;
+      setLoading('cmd-result', 'Sending to Jarvis via Claude API…');
+      try {
+        const d = await apiFetch('/api/ai/text-command', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ command }),
+        });
+        if (d.ok) {
+          setResult('cmd-result', 'Jarvis says:\n"' + d.response + '"', 'ok');
+        } else {
+          setResult('cmd-result', '✗ Error:\n' + d.error, 'err');
+        }
+      } catch (e) {
+        setResult('cmd-result', 'Request error: ' + e.message, 'err');
+      }
+    }
+
+    // ── Keyboard shortcut (Enter in textarea) ─────────────────────────────────
+    document.addEventListener('DOMContentLoaded', () => {
+      document.getElementById('cmd-input').addEventListener('keydown', e => {
+        if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) runTextCommand();
+      });
+      loadStatus();
+    });
+
+    function escHtml(s) {
+      return String(s)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;');
+    }
+  </script>
+</body>
+</html>
