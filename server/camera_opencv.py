@@ -415,14 +415,9 @@ class Camera(BaseCamera):
         from picamera2 import Picamera2
         camera = Picamera2()
         config = camera.create_video_configuration(
-            main={"size": (640, 480), "format": "RGB888"}
+            main={"size": (640, 480), "format": "BGR888"}
         )
         camera.configure(config)
-        # Enable auto white balance for correct colors
-        camera.set_controls({
-            "AwbEnable": True,
-            "AeEnable": True,
-        })
         camera.start()
         time.sleep(2)  # Let auto-exposure and white balance settle
 
@@ -435,9 +430,6 @@ class Camera(BaseCamera):
             if img is None:
                 time.sleep(0.1)
                 continue
-
-            # picamera2 outputs RGB, OpenCV expects BGR
-            img = cv2.cvtColor(img, cv2.COLOR_RGB2BGR)
 
             if Camera.modeSelect == 'none':
                 switch.switch(1, 0)
