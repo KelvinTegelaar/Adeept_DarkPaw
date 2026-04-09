@@ -1,11 +1,11 @@
 #!/usr/bin/env python3
 # File name   : ai_controller.py
 # Description : Claude-powered AI brain for voice commands and vision
-# Usage       : Set ANTHROPIC_API_KEY env var, then speak "Bot, <command>"
-#               e.g. "Bot, tell me what you see"
-#                    "Bot, make a 360 survey of the room"
-#                    "Bot, enter guard mode for 5 minutes"
-#                    "Bot, walk forward for 3 seconds"
+# Usage       : Set ANTHROPIC_API_KEY env var, then speak "Jarvis, <command>"
+#               e.g. "Jarvis, tell me what you see"
+#                    "Jarvis, make a 360 survey of the room"
+#                    "Jarvis, enter guard mode for 5 minutes"
+#                    "Jarvis, walk forward for 3 seconds"
 
 import base64
 import logging
@@ -29,7 +29,7 @@ logger = logging.getLogger(__name__)
 ANTHROPIC_API_KEY = os.environ.get('ANTHROPIC_API_KEY', '')
 # Model with vision + tool-use support
 MODEL = 'claude-opus-4-5'
-WAKE_WORD = 'bot'
+WAKE_WORD = 'jarvis'
 # Microphone device index; set to None to use the system default
 MIC_DEVICE_INDEX = None
 # Preferred sample rate for the microphone (DarkPaw USB mic default is 48 kHz)
@@ -42,13 +42,17 @@ LISTEN_TIMEOUT = 5
 PHRASE_TIME_LIMIT = 10
 
 SYSTEM_PROMPT = (
-    "You are the AI brain of an Adeept DarkPaw quadruped spider robot. "
+    "You are Jarvis, the AI brain of an Adeept DarkPaw quadruped spider robot — "
+    "witty, confident, and helpful, just like the AI assistant from Iron Man. "
     "The robot has a camera, RGB LED lights, and four legs. "
     "Use the available tools to carry out the user's voice commands. "
     "For complex multi-step tasks (e.g. '360 survey', 'guard mode', "
     "'walk toward the chair'), plan and execute them using multiple tool "
     "calls in sequence. "
-    "Always finish by calling the speak tool to give the user a verbal summary."
+    "Always narrate what you are doing in a Jarvis-like tone: be brief, "
+    "a touch dry, and occasionally add a clever quip. "
+    "Always finish by calling the speak tool to give the user a verbal "
+    "summary of what was accomplished."
 )
 
 # ---------------------------------------------------------------------------
@@ -60,6 +64,8 @@ TOOLS = [
         "name": "walk",
         "description": (
             "Make the robot walk in a direction or change its stance. "
+            "You may optionally precede this with a brief speak call to "
+            "narrate the movement in a Jarvis-like tone. "
             "Valid directions: forward, backward, turnleft, turnright, "
             "StandUp, StayLow, Lean-R, Lean-L."
         ),
@@ -84,7 +90,11 @@ TOOLS = [
     },
     {
         "name": "look",
-        "description": "Aim the robot's camera head in a direction.",
+        "description": (
+            "Aim the robot's camera head in a direction. "
+            "Feel free to add a brief spoken comment about what you are "
+            "scanning for before or after moving the head."
+        ),
         "input_schema": {
             "type": "object",
             "properties": {
@@ -285,7 +295,7 @@ def _execute_tool(name, tool_input, led, stop_event):
         while time.monotonic() < end and not stop_event.is_set():
             time.sleep(0.05)
         SpiderG.servoStop()
-        return [{"type": "text", "text": f"Walked {direction} for {duration:.1f}s."}]
+        return [{"type": "text", "text": f"Walked {direction} for {duration:.1f}s. Movement complete."}]
 
     # -- look ------------------------------------------------------------------
     if name == 'look':
@@ -320,7 +330,7 @@ def _execute_tool(name, tool_input, led, stop_event):
     # -- stop ------------------------------------------------------------------
     if name == 'stop':
         SpiderG.servoStop()
-        return [{"type": "text", "text": "All movement stopped."}]
+        return [{"type": "text", "text": "All movement stopped. Standing by, sir."}]
 
     # -- set_leds --------------------------------------------------------------
     if name == 'set_leds':
@@ -577,17 +587,17 @@ def process_command(command_text, led, stop_event):
 # ---------------------------------------------------------------------------
 
 class AIController(threading.Thread):
-    """Background thread that listens for voice commands beginning with "Bot".
+    """Background thread that listens for voice commands beginning with "Jarvis".
 
     Workflow:
     1. Continuously listen for audio via the default microphone.
     2. Transcribe with Google Speech Recognition (requires internet).
-    3. If the transcript starts with the wake word ("bot"), pass the remainder
+    3. If the transcript starts with the wake word ("jarvis"), pass the remainder
        to Claude via *process_command*.
     4. Claude decides which tools to call and in which order.
 
-    The current task can be cancelled at any time by saying "Bot, stop" or
-    "Bot, cancel", which sets the internal *_task_stop* event so that
+    The current task can be cancelled at any time by saying "Jarvis, stop" or
+    "Jarvis, cancel", which sets the internal *_task_stop* event so that
     long-running tools (360 survey, guard patrol, timed walks) exit cleanly.
     """
 
@@ -719,7 +729,7 @@ class AIController(threading.Thread):
 
             if not command or command in ('stop', 'cancel', 'abort'):
                 self.cancel_task()
-                _speak("Task cancelled.")
+                _speak("Understood. Task cancelled, sir.")
                 continue
 
             logger.info('[AI] Command received: %s', command)

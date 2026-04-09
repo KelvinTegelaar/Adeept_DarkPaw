@@ -566,7 +566,7 @@ if __name__ == '__main__':
 		from ai_controller import AIController
 		ai_ctrl = AIController(led)
 		ai_ctrl.start()
-		print('[AI] AI controller started. Say "Bot, <command>" to interact.')
+		print('[AI] AI controller started. Say "Jarvis, <command>" to interact.')
 	except Exception as _ai_exc:
 		print('[AI] AI controller unavailable: %s' % _ai_exc)
 
