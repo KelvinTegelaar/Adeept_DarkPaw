@@ -124,6 +124,8 @@ def install_darkpaw():
 	run_os_command("sudo pip3 install opencv-contrib-python==3.4.3.18")
 	run_os_command("sudo pip3 install numpy")
 	run_os_command("sudo pip3 install imutils zmq pybase64 psutil")
+	run_os_command("sudo pip3 install anthropic")
+	run_os_command("sudo apt-get install -y espeak")
 
 	# Set up the autostart
 	create_autostart_rc()
