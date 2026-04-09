@@ -415,7 +415,7 @@ class Camera(BaseCamera):
         from picamera2 import Picamera2
         camera = Picamera2()
         config = camera.create_video_configuration(
-            main={"size": (640, 480), "format": "BGR888"}
+            main={"size": (640, 480), "format": "RGB888"}
         )
         camera.configure(config)
         camera.start()
