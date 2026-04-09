@@ -287,13 +287,37 @@ def _image_content_block(jpeg_bytes):
 # ---------------------------------------------------------------------------
 
 def _speak(text):
-    """Speak *text* aloud using Google TTS (British accent, sped up).
+    """Speak *text* aloud using Microsoft Edge TTS (British male voice).
 
-    Falls back to espeak-ng/espeak if gTTS or playback fails.
+    Falls back to gTTS, then espeak if Edge TTS is unavailable.
     """
     logger.info('[AI] Speaking: %s', text)
 
-    # --- Google TTS (natural voice, British accent) ---
+    # --- Attempt 1: Edge TTS (British male, high quality) ---
+    try:
+        import tempfile
+        with tempfile.NamedTemporaryFile(suffix='.mp3', delete=False) as f:
+            tmp_path = f.name
+        subprocess.run(
+            ['edge-tts',
+             '--voice', 'en-GB-RyanNeural',
+             '--rate', '+15%',
+             '--text', text,
+             '--write-media', tmp_path],
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
+            timeout=30,
+        )
+        subprocess.Popen(
+            ['bash', '-c', f'mpg123 -q "{tmp_path}"; rm -f "{tmp_path}"'],
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
+        )
+        return
+    except Exception as exc:  # noqa: BLE001
+        logger.debug('[AI] edge-tts failed (%s), trying gTTS', exc)
+
+    # --- Attempt 2: Google TTS fallback ---
     try:
         import tempfile
         from gtts import gTTS
@@ -301,13 +325,8 @@ def _speak(text):
         with tempfile.NamedTemporaryFile(suffix='.mp3', delete=False) as f:
             tmp_path = f.name
             tts.save(tmp_path)
-        # Play sped up: convert to wav, speed up with sox, then play
         subprocess.Popen(
-            ['bash', '-c',
-             f'sox "{tmp_path}" -r 24000 /tmp/_jarvis_fast.wav tempo 1.25 2>/dev/null '
-             f'&& aplay -q /tmp/_jarvis_fast.wav '
-             f'|| mpg123 -q "{tmp_path}"; '
-             f'rm -f "{tmp_path}" /tmp/_jarvis_fast.wav'],
+            ['bash', '-c', f'mpg123 -q "{tmp_path}"; rm -f "{tmp_path}"'],
             stdout=subprocess.DEVNULL,
             stderr=subprocess.DEVNULL,
         )
@@ -315,7 +334,7 @@ def _speak(text):
     except Exception as exc:  # noqa: BLE001
         logger.debug('[AI] gTTS failed (%s), falling back to espeak', exc)
 
-    # --- espeak-ng / espeak fallback ---
+    # --- Attempt 3: espeak fallback ---
     for engine in ('espeak-ng', 'espeak'):
         try:
             subprocess.Popen(
