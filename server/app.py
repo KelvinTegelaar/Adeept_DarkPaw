@@ -131,6 +131,26 @@ def ai_text_command():
         return jsonify({'ok': False, 'error': 'Internal server error'}), 500
 
 
+@app.route('/api/switch', methods=['POST'])
+def switch_ctrl():
+    """Toggle a GPIO switch (headlight). Body: {port: 1-3, state: 0|1}
+    Omit port to toggle all 3 switches."""
+    try:
+        import switch
+        body = request.get_json(silent=True) or {}
+        state = int(body.get('state', 1))
+        port = body.get('port')
+        if port is not None:
+            switch.switch(int(port), state)
+        else:
+            for p in (1, 2, 3):
+                switch.switch(p, state)
+        return jsonify({'ok': True, 'state': state})
+    except Exception:
+        logger.exception('/api/switch error')
+        return jsonify({'ok': False, 'error': 'Switch control failed'}), 500
+
+
 class webapp:
     def __init__(self):
         self.camera = camera

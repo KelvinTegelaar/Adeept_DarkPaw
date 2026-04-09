@@ -203,6 +203,32 @@ TOOLS = [
             "required": ["text"],
         },
     },
+    {
+        "name": "headlights",
+        "description": (
+            "Turn the robot's headlights (GPIO switches) on or off. "
+            "There are 3 headlight ports. By default all 3 are toggled "
+            "together, but you can specify individual ports 1-3."
+        ),
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "state": {
+                    "type": "string",
+                    "enum": ["on", "off"],
+                    "description": "Turn headlights on or off",
+                },
+                "port": {
+                    "type": "integer",
+                    "description": (
+                        "Specific port 1-3 to control, or omit to "
+                        "toggle all headlights together"
+                    ),
+                },
+            },
+            "required": ["state"],
+        },
+    },
 ]
 
 # ---------------------------------------------------------------------------
@@ -371,6 +397,22 @@ def _execute_tool(name, tool_input, led, stop_event):
         text = tool_input.get('text', '')
         _speak(text)
         return [{"type": "text", "text": f"Spoke: {text}"}]
+
+    # -- headlights ------------------------------------------------------------
+    if name == 'headlights':
+        import switch as _switch
+        state = 1 if tool_input.get('state') == 'on' else 0
+        port = tool_input.get('port')
+        if port is not None:
+            _switch.switch(int(port), state)
+            label = f"port {port}"
+        else:
+            for p in (1, 2, 3):
+                _switch.switch(p, state)
+            label = "all ports"
+        state_str = "on" if state else "off"
+        return [{"type": "text",
+                 "text": f"Headlights ({label}) turned {state_str}."}]
 
     return [{"type": "text", "text": f"Unknown tool: {name}"}]
 
