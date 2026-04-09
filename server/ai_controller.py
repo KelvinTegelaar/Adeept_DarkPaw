@@ -286,60 +286,28 @@ def _image_content_block(jpeg_bytes):
 # Text-to-speech
 # ---------------------------------------------------------------------------
 
-# Path to piper binary and voice model (installed on the Pi)
-_PIPER_BIN = os.environ.get('PIPER_BIN', '/usr/local/bin/piper')
-_PIPER_VOICE = os.environ.get(
-    'PIPER_VOICE',
-    os.path.expanduser('~/.local/share/piper/en_GB-alan-medium.onnx')
-)
-# Piper speech rate: 1.0 = normal, >1 = faster
-_PIPER_RATE = float(os.environ.get('PIPER_RATE', '1.3'))
-
-
 def _speak(text):
-    """Speak *text* aloud using the best available TTS engine.
+    """Speak *text* aloud using Google TTS (British accent, sped up).
 
-    Priority:
-    1. Piper TTS — high-quality, offline, British male voice
-    2. Google TTS — good quality, requires internet
-    3. espeak-ng/espeak — robotic fallback
+    Falls back to espeak-ng/espeak if gTTS or playback fails.
     """
     logger.info('[AI] Speaking: %s', text)
 
-    # --- Attempt 1: Piper TTS (high-quality offline) ---
-    if os.path.isfile(_PIPER_BIN) and os.path.isfile(_PIPER_VOICE):
-        try:
-            import tempfile
-            with tempfile.NamedTemporaryFile(suffix='.wav', delete=False) as f:
-                tmp_path = f.name
-            subprocess.run(
-                [_PIPER_BIN, '--model', _PIPER_VOICE,
-                 '--length_scale', str(round(1.0 / _PIPER_RATE, 2)),
-                 '--output_file', tmp_path],
-                input=text.encode('utf-8'),
-                stdout=subprocess.DEVNULL,
-                stderr=subprocess.DEVNULL,
-                timeout=30,
-            )
-            subprocess.Popen(
-                ['bash', '-c', f'aplay -q "{tmp_path}" && rm -f "{tmp_path}"'],
-                stdout=subprocess.DEVNULL,
-                stderr=subprocess.DEVNULL,
-            )
-            return
-        except Exception as exc:  # noqa: BLE001
-            logger.debug('[AI] Piper failed (%s), trying gTTS', exc)
-
-    # --- Attempt 2: Google TTS (natural voice, needs internet) ---
+    # --- Google TTS (natural voice, British accent) ---
     try:
         import tempfile
         from gtts import gTTS
-        tts = gTTS(text=text, lang='en', tld='co.uk')  # British accent
+        tts = gTTS(text=text, lang='en', tld='co.uk')
         with tempfile.NamedTemporaryFile(suffix='.mp3', delete=False) as f:
             tmp_path = f.name
             tts.save(tmp_path)
+        # Play sped up: convert to wav, speed up with sox, then play
         subprocess.Popen(
-            ['bash', '-c', f'mpg123 -q "{tmp_path}" && rm -f "{tmp_path}"'],
+            ['bash', '-c',
+             f'sox "{tmp_path}" -r 24000 /tmp/_jarvis_fast.wav tempo 1.25 2>/dev/null '
+             f'&& aplay -q /tmp/_jarvis_fast.wav '
+             f'|| mpg123 -q "{tmp_path}"; '
+             f'rm -f "{tmp_path}" /tmp/_jarvis_fast.wav'],
             stdout=subprocess.DEVNULL,
             stderr=subprocess.DEVNULL,
         )
@@ -347,11 +315,11 @@ def _speak(text):
     except Exception as exc:  # noqa: BLE001
         logger.debug('[AI] gTTS failed (%s), falling back to espeak', exc)
 
-    # --- Attempt 3: espeak-ng / espeak fallback ---
+    # --- espeak-ng / espeak fallback ---
     for engine in ('espeak-ng', 'espeak'):
         try:
             subprocess.Popen(
-                [engine, '-v', 'en+m3', '-s', '160', '-p', '40', text],
+                [engine, '-v', 'en+m3', '-s', '175', '-p', '40', text],
                 stdout=subprocess.DEVNULL,
                 stderr=subprocess.DEVNULL,
             )
