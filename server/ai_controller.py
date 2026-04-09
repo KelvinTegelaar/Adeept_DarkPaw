@@ -287,14 +287,11 @@ def _image_content_block(jpeg_bytes):
 # ---------------------------------------------------------------------------
 
 def _speak(text):
-    """Speak *text* aloud using Google TTS with pitch-shift for a male voice.
+    """Speak *text* aloud using Google TTS (British accent).
 
-    Uses sox to lower pitch and speed up slightly for a Jarvis-like tone.
-    Falls back to espeak if gTTS fails.
+    Falls back to espeak if gTTS or playback fails.
     """
     logger.info('[AI] Speaking: %s', text)
-
-    # --- Google TTS + sox pitch-shift for male voice ---
     try:
         import tempfile
         from gtts import gTTS
@@ -302,12 +299,8 @@ def _speak(text):
         with tempfile.NamedTemporaryFile(suffix='.mp3', delete=False) as f:
             tmp_path = f.name
             tts.save(tmp_path)
-        # sox: pitch down 150Hz (more male), speed up 1.15x
         subprocess.Popen(
-            ['bash', '-c',
-             f'sox "{tmp_path}" /tmp/_jarvis.wav pitch -150 tempo 1.15 '
-             f'&& aplay -q /tmp/_jarvis.wav; '
-             f'rm -f "{tmp_path}" /tmp/_jarvis.wav'],
+            ['bash', '-c', f'mpg123 -q "{tmp_path}"; rm -f "{tmp_path}"'],
             stdout=subprocess.DEVNULL,
             stderr=subprocess.DEVNULL,
         )
@@ -315,11 +308,10 @@ def _speak(text):
     except Exception as exc:  # noqa: BLE001
         logger.debug('[AI] gTTS failed (%s), falling back to espeak', exc)
 
-    # --- espeak fallback ---
     for engine in ('espeak-ng', 'espeak'):
         try:
             subprocess.Popen(
-                [engine, '-v', 'en+m3', '-s', '175', '-p', '40', text],
+                [engine, '-v', 'en+m3', '-s', '160', '-p', '40', text],
                 stdout=subprocess.DEVNULL,
                 stderr=subprocess.DEVNULL,
             )
